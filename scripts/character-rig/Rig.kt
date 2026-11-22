@@ -244,9 +244,14 @@ private class Binding(val marks: Landmarks, val hairEnd: Float) {
                     // Follow the sloping sleeves from each shoulder; the dress and face stay put.
                     val side = if (p.x < marks.neck.x) -1f else 1f
                     val shoulder = marks.neck.shift(side * 91f, 110f)
-                    val hand = marks.neck.shift(side * 339f, 245f)
-                    val reach = smooth(20f, 220f, side * (p.x - shoulder.x))
-                    val sleeve = 1f - smooth(32f, 78f, segmentDistance(p, shoulder, hand))
+                    val beyondFingers = marks.neck.shift(side * 453f, 309f)
+                    val span = side * (p.x - shoulder.x)
+                    val reach = smooth(20f, 216f, span)
+                    // Widen the sleeve's skinning band around the open palm. Each fingertip
+                    // must share the wrist transform to retain its painted length and proportion.
+                    val palm = smooth(130f, 214f, span)
+                    val sleeve = 1f - smooth(32f + 76f * palm, 78f + 61f * palm,
+                        segmentDistance(p, shoulder, beyondFingers))
                     rotate(p, shoulder, -side * amount * 17f * reach * sleeve)
                 }
                 "MarchGather" -> {
