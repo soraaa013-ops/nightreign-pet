@@ -70,12 +70,25 @@ async function rasterize(
     {
       id,
       source: crop,
+      clip,
       place: [x, y, width, height],
     },
   ] of layers.entries()) {
     const cutout = surface(width, height)
     const ctx = cutout.getContext('2d', { willReadFrequently: true })
     ctx.imageSmoothingQuality = 'high'
+    if (clip) {
+      // Adjacent cutouts can overlap in bounding boxes, even with transparent gutters.
+      ctx.beginPath()
+      clip.forEach(([px, py], i) => {
+        const x = ((px - crop[0]) / crop[2]) * width
+        const y = ((py - crop[1]) / crop[3]) * height
+        if (i === 0) ctx.moveTo(x, y)
+        else ctx.lineTo(x, y)
+      })
+      ctx.closePath()
+      ctx.clip()
+    }
     ctx.drawImage(source, ...crop, 0, 0, width, height)
     // Discard near-transparent matte noise outside the painted antialiased outline.
     const pixels = ctx.getImageData(0, 0, width, height)

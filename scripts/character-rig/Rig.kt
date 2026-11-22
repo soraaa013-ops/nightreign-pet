@@ -85,7 +85,7 @@ private class Binding(val marks: Landmarks) {
             "BackHair" -> {
                 val fall = smooth(marks.neck.y - 140f, marks.feet.y, p.y)
                 val hair = rotate(p, marks.neck, tilt * .73f * (1f - fall))
-                hair.shift(wind * fall * (56f + 8f * sin(p.y / 122f)), -abs(wind) * fall * 14f + fall * wind * (p.x - marks.hips.x) * .043f)
+                hair.shift(wind * fall * (34f + 6f * sin(p.y / 122f)), -abs(wind) * fall * 14f + fall * wind * (p.x - marks.hips.x) * .043f)
             }
             "Dress", "Cape" -> {
                 val hem = smooth(marks.hips.y - 150f, marks.feet.y - 69f, p.y) * (1f - smooth(marks.feet.y - 34f, marks.feet.y + 5f, p.y))
@@ -95,11 +95,11 @@ private class Binding(val marks: Landmarks) {
             in footLayers -> p
             "Lyre" -> {
                 val aperture = (1f - smooth(13f, 43f, abs(p.x - marks.strings.x))) * (1f - smooth(20f, 70f, abs(p.y - marks.strings.y)))
-                rotate(p.shift(4.6f * pluck * aperture, 0f), marks.harpPivot, 14f * harp)
+                rotate(p.shift(4.6f * pluck * aperture, 0f), marks.harpPivot, 8f * harp)
             }
             "HoldArm" -> {
                 val reach = smooth(13f, 115f, distance(p, marks.holdShoulder))
-                rotate(p, marks.harpPivot, 14f * harp * reach)
+                rotate(p, marks.harpPivot, 8f * harp * reach)
             }
             "PluckArm" -> {
                 val forearm = smooth(-35f, 72f, p.x - marks.wrist.x)
@@ -122,7 +122,7 @@ private class Binding(val marks: Landmarks) {
         return when (control) {
             Control.LEAN -> {
                 val planted = smooth(marks.hips.y + 48f, marks.feet.y - 10f, p.y)
-                rotate(p, marks.hips, amount * 7.8f * (1f - planted))
+                rotate(p, marks.hips, amount * 4.6f * (1f - planted))
                     .shift(amount * 10f * (1f - planted), 0f)
             }
             Control.STEP -> {
@@ -133,16 +133,16 @@ private class Binding(val marks: Landmarks) {
                 }
                 val leading = if (amount > 0f) rightFoot else 1f - rightFoot
                 val ankle = smooth(marks.feet.y - 146f, marks.feet.y - 20f, p.y)
-                val lateral = 34f * (1f - ankle) + 84f * leading * ankle
+                val lateral = 22f * (1f - ankle) + 58f * leading * ankle
                 p.shift(amount * lateral, -abs(amount) * (5f * (1f - lower) + 28f * ankle * leading))
             }
             Control.LEVEL -> {
                 if (amount < 0) {
                     val folded = 1f - lower
-                    p.shift(-amount * (p.x - marks.hips.x) * .035f * lower, -amount * 65f * folded)
+                    p.shift(-amount * (p.x - marks.hips.x) * .035f * lower, -amount * 39f * folded)
                 } else {
                     val foot = smooth(marks.hips.y + 28f, marks.feet.y - 13f, p.y)
-                    p.shift(-amount * (p.x - marks.hips.x) * .055f * foot, -amount * (24f + 46f * foot))
+                    p.shift(-amount * (p.x - marks.hips.x) * .055f * foot, -amount * (19f + 28f * foot))
                 }
             }
             Control.ARM -> when (role) {

@@ -6,19 +6,51 @@
   "landmarks": {
     "eyes": [
       [
-        486,
-        266,
-        65,
-        37,
-        -16
+        495,
+        319,
+        112,
+        84,
+        -8
       ],
       [
-        577,
-        246,
-        43,
-        28,
-        -12
+        613,
+        297,
+        53,
+        74,
+        -8
       ]
+    ],
+    "neck": [
+      516,
+      433
+    ],
+    "hips": [
+      509,
+      751
+    ],
+    "feet": [
+      508,
+      1027
+    ],
+    "pluckShoulder": [
+      410,
+      552
+    ],
+    "holdShoulder": [
+      597,
+      524
+    ],
+    "wrist": [
+      558,
+      538
+    ],
+    "harpPivot": [
+      706,
+      620
+    ],
+    "strings": [
+      663,
+      517
     ]
   },
   "layers": [
@@ -34,73 +66,73 @@
     {
       "id": "BackHair",
       "file": "parts/BackHair.png",
-      "x": 100,
-      "y": 53,
-      "width": 795,
-      "height": 976,
+      "x": 141,
+      "y": 83,
+      "width": 729,
+      "height": 930,
       "z": 1
     },
     {
       "id": "Dress",
       "file": "parts/Dress.png",
-      "x": 192,
-      "y": 338,
-      "width": 622,
-      "height": 705,
+      "x": 203,
+      "y": 393,
+      "width": 605,
+      "height": 645,
       "z": 2
     },
     {
       "id": "HoldArm",
       "file": "parts/HoldArm.png",
       "x": 570,
-      "y": 466,
-      "width": 193,
-      "height": 139,
+      "y": 493,
+      "width": 194,
+      "height": 144,
       "z": 3
     },
     {
       "id": "Lyre",
       "file": "parts/Lyre.png",
-      "x": 582,
-      "y": 371,
-      "width": 181,
+      "x": 566,
+      "y": 413,
+      "width": 198,
       "height": 225,
       "z": 4
     },
     {
       "id": "PluckArm",
       "file": "parts/PluckArm.png",
-      "x": 389,
-      "y": 421,
-      "width": 284,
-      "height": 216,
+      "x": 371,
+      "y": 465,
+      "width": 306,
+      "height": 193,
       "z": 5
     },
     {
       "id": "Head",
       "file": "parts/Head.png",
-      "x": 255,
-      "y": 23,
-      "width": 410,
-      "height": 400,
+      "x": 247,
+      "y": 31,
+      "width": 462,
+      "height": 458,
       "z": 6
     },
     {
       "id": "LidLeft",
       "file": "parts/LidLeft.png",
-      "x": 430,
-      "y": 210,
-      "width": 112,
-      "height": 112,
+      "x": 397,
+      "y": 221,
+      "width": 196,
+      "height": 196,
       "z": 7
     },
     {
       "id": "LidRight",
       "file": "parts/LidRight.png",
-      "x": 535,
-      "y": 204,
-      "width": 84,
-      "height": 84,
+      "x": 548,
+      "y": 232,
+      "width": 130,
+      "height": 130,
       "z": 8
     }
   ]

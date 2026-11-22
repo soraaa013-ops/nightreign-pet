@@ -1,6 +1,6 @@
 # 小蜗的准备界面与回退立绘
 
-`revenant-portrait.webp` 与 0.3.0 的 Live2D 使用同一套画稿。准备界面和模型加载失败时都显示这张立绘，模型加载失败时还提供重试按钮。[画稿与分层](../../../art/revenant/README.md)
+`revenant-portrait.webp` 与当前卡通版 Live2D 使用同一套画稿。准备界面和模型加载失败时都显示这张立绘，模型加载失败时还提供重试按钮。[画稿与分层](../../../art/revenant/README.md)
 
 `revenant-concept.png` 是 0.1.0 制作的透明同人概念稿。项目在 2026-11-22 使用 ImageGen 根据万代南梦宫的角色图创作。官方原图只保留在开发临时目录。[官方复仇者角色图](https://static.bandainamcoent.eu/high/elden-ring/elden-ring-nightreign/04-character-gallery/01-thumbnail/V2/revenant-thumbnail-V2.png)
 

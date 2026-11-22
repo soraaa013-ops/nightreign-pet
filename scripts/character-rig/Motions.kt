@@ -22,20 +22,16 @@ private val testNote = Pose(lean = -.19, level = .13, arm = .35, pluck = .72, ha
 private val glance = Pose(lean = .36, step = .44, level = -.12, arm = .14, pluck = .15, tilt = -.67, wind = -.41)
 private val stepLeft = Pose(lean = -.35, step = -.85, level = -.24, arm = .2, pluck = -.26, harp = -.16, tilt = .18, wind = .47)
 private val stepRight = Pose(lean = .35, step = .85, level = -.24, arm = -.08, pluck = .13, harp = .17, tilt = -.25, wind = -.52)
-private val windup = Pose(lean = -.64, step = -.48, level = -.65, arm = .8, pluck = -.87, harp = -.71, tilt = .47, wind = .69)
 private val upbeat = Pose(lean = -.32, step = -.26, level = .32, arm = .82, pluck = -.55, harp = .26, tilt = -.48, wind = .33)
-private val downbeat = Pose(lean = .63, step = .51, level = -.45, arm = -.58, pluck = .94, harp = .67, tilt = -.61, wind = -.83)
 private val sweep = Pose(lean = .79, step = .52, level = .38, arm = .57, pluck = .88, harp = .93, tilt = -.67, wind = -.78)
-private val rebound = Pose(lean = -.49, step = .12, level = .17, arm = -.08, pluck = -.42, harp = -.49, tilt = .51, wind = .79)
-private val guard = Pose(lean = -.55, step = -.62, level = -.41, arm = .89, pluck = -.37, harp = .77, tilt = -.39, wind = .49)
 private val lowGuard = Pose(lean = .25, step = .45, level = -.93, arm = .56, pluck = -.68, harp = -.48, tilt = .58, wind = -.43)
 private val flourish = Pose(lean = -.45, step = -.19, level = .23, arm = .98, pluck = .43, harp = .87, tilt = -.64, wind = .59)
 private val salute = Pose(lean = .18, step = .29, level = -.67, arm = -.28, pluck = .22, harp = -.31, tilt = .85, wind = -.22)
-private val spring = Pose(lean = -.21, step = .77, level = 1.0, arm = .86, pluck = -.76, harp = .74, tilt = -.45, wind = -.77)
-private val landing = Pose(lean = .44, step = .77, level = -.91, arm = -.68, pluck = .97, harp = .69, tilt = .53, wind = -.8)
-private val heavyWindup = windup.copy(lean = -.91, step = -.86, level = -1.0, arm = 1.0, pluck = -1.0, harp = -.96, wind = .99)
-private val heavyStrike = downbeat.copy(lean = .94, step = .91, arm = -.82, pluck = 1.0, harp = .96, wind = -1.0)
-private val recoil = rebound.copy(lean = -.79, step = -.51, level = -.51, arm = .67, pluck = -.75, wind = 1.0)
+
+private val readyToPluck = Pose(arm = .69, pluck = -.86, harp = .08, tilt = .23)
+private val strikeString = Pose(arm = -.26, pluck = .97, harp = -.12, lean = .15, wind = -.18)
+private val tuckLyre = Pose(step = -.46, lean = -.26, level = -.26, arm = .22, pluck = -.33, harp = -.56)
+private val callSpirit = Pose(arm = .96, pluck = -.55, harp = .42, tilt = -.32, lean = -.16)
 
 private val bodyTracks = listOf(
     Control.LEAN to Pose::lean, Control.STEP to Pose::step, Control.LEVEL to Pose::level,
@@ -94,48 +90,47 @@ fun motions(hasSpirit: Boolean): List<Clip> {
         motion(Action.TOUCH, "touch_greet", 2.12, .25 to stepRight.copy(step = .35), .62 to flourish,
             1.11 to flourish.copy(tilt = -.91, harp = .44), 1.59 to salute.copy(level = -.4), eyes = blink(1.32)),
 
-        // First night: each ordinary strike has a readable preparation, contact and release.
-        motion(Action.NIGHT_ONE, "battle", 2.85, .36 to stepLeft, .78 to windup, .98 to downbeat,
-            1.28 to upbeat, 1.5 to sweep, 1.94 to rebound, 2.39 to guard.copy(arm = .48), eyes = blink(2.14)),
-        motion(Action.NIGHT_ONE, "battle_feint", 2.55, .36 to stepRight, .62 to guard, .99 to stepLeft,
-            1.33 to windup, 1.54 to downbeat, 1.93 to rebound, eyes = blink(.83)),
-        motion(Action.NIGHT_ONE, "battle_guard", 2.95, .42 to lowGuard, .91 to guard, 1.28 to guard.copy(harp = 1.0, lean = -.76),
-            1.58 to stepRight, 1.89 to sweep, 2.31 to rebound, eyes = blink(2.47)),
-        motion(Action.NIGHT_ONE, "battle_accent", 2.69, .42 to readStrings.copy(level = -.56), .87 to windup,
-            1.11 to downbeat.copy(level = -.76), 1.57 to rebound, 2.09 to flourish.copy(arm = .57), eyes = blink(.64)),
+        // Plant the feet so the wrist crossing the strings reads as a single accent.
+        motion(Action.NIGHT_ONE, "battle", 2.85, .48 to readyToPluck, .82 to readyToPluck,
+            1.02 to strikeString, 1.40 to strikeString, 2.08 to readStrings, eyes = blink(2.27)),
+        motion(Action.NIGHT_ONE, "battle_feint", 2.55, .48 to readyToPluck, .78 to readStrings,
+            1.14 to readyToPluck, 1.34 to strikeString, 1.67 to strikeString, 2.04 to listen),
+        motion(Action.NIGHT_ONE, "battle_guard", 2.95, .55 to tuckLyre, 1.20 to tuckLyre,
+            1.59 to readyToPluck, 1.82 to strikeString, 2.22 to strikeString, eyes = blink(.84)),
+        motion(Action.NIGHT_ONE, "battle_accent", 2.69, .45 to readStrings, .80 to readyToPluck,
+            1.04 to strikeString, 1.49 to strikeString, 1.93 to rest, eyes = blink(2.20)),
 
-        // Second night: syncopated clusters change direction and height during a phrase.
-        motion(Action.NIGHT_TWO, "night2_triplet", 2.82, .3 to stepLeft, .53 to windup, .70 to downbeat,
-            .89 to upbeat, 1.06 to downbeat.copy(lean = .2), 1.26 to lowGuard, 1.48 to sweep, 1.95 to recoil, 2.38 to stepRight),
-        motion(Action.NIGHT_TWO, "night2_riposte", 2.99, .38 to stepRight, .73 to lowGuard, 1.05 to lowGuard.copy(level = -.98, arm = .79),
-            1.29 to spring.copy(level = .68), 1.55 to landing, 2.02 to rebound, 2.45 to guard, eyes = blink(.93)),
-        motion(Action.NIGHT_TWO, "night2_arc", 3.09, .36 to stepLeft, .7 to guard, 1.07 to flourish, 1.32 to stepRight.copy(arm = .69),
-            1.57 to sweep, 1.84 to downbeat, 2.23 to rebound, 2.68 to readStrings),
-        motion(Action.NIGHT_TWO, "night2_offbeat", 2.84, .28 to windup, .45 to downbeat, .85 to stepLeft,
-            1.1 to upbeat, 1.25 to downbeat.copy(step = -.25), 1.55 to windup, 1.76 to sweep, 2.16 to recoil, eyes = blink(2.44)),
+        // Two or three separated notes. Only the playing hand reverses direction on each note.
+        motion(Action.NIGHT_TWO, "night2_triplet", 2.82, .42 to readyToPluck, .62 to strikeString,
+            .92 to readyToPluck, 1.10 to strikeString, 1.42 to readyToPluck, 1.62 to strikeString, 2.05 to strikeString),
+        motion(Action.NIGHT_TWO, "night2_riposte", 2.99, .46 to tuckLyre, .94 to tuckLyre, 1.30 to readyToPluck,
+            1.51 to strikeString, 1.89 to readyToPluck, 2.11 to strikeString, 2.46 to strikeString),
+        motion(Action.NIGHT_TWO, "night2_arc", 3.09, .52 to readStrings, .88 to readyToPluck, 1.14 to strikeString,
+            1.53 to readyToPluck, 1.87 to strikeString, 2.28 to strikeString),
+        motion(Action.NIGHT_TWO, "night2_offbeat", 2.84, .42 to readyToPluck, .65 to strikeString, .87 to readyToPluck,
+            1.27 to readyToPluck, 1.48 to strikeString, 1.89 to strikeString, eyes = blink(2.34)),
 
-        // Nightlord: deeper compression, airborne footwork, larger extensions and a spirit response.
-        motion(Action.NIGHTLORD, "lord_charge", 3.6, .4 to lowGuard, .9 to heavyWindup, 1.28 to heavyWindup.copy(tilt = .82),
-            1.5 to spring, 1.76 to heavyStrike, 2.06 to recoil, 2.6 to guard, 3.06 to stepRight,
-            spirit = listOf(.71 to 0.0, 1.32 to .48, 1.78 to .84, 2.08 to .71, 2.7 to 0.0)),
-        motion(Action.NIGHTLORD, "lord_lunge", 3.23, .31 to stepLeft, .62 to heavyWindup, .84 to heavyStrike,
-            1.09 to upbeat, 1.27 to downbeat, 1.5 to lowGuard, 1.73 to sweep, 2.01 to recoil, 2.59 to guard),
-        motion(Action.NIGHTLORD, "lord_recoil", 3.55, .49 to guard, .94 to heavyWindup, 1.24 to spring,
-            1.48 to landing, 1.77 to recoil, 2.03 to recoil.copy(step = -1.0, tilt = -.45), 2.54 to lowGuard, 3.02 to flourish,
-            spirit = listOf(.83 to 0.0, 1.33 to .85, 1.6 to 1.0, 1.93 to .72, 2.51 to 0.0)),
-        motion(Action.NIGHTLORD, "lord_evade", 3.12, .31 to stepRight, .66 to lowGuard, .92 to spring.copy(step = -1.0),
-            1.16 to landing.copy(step = -.91, lean = -.66), 1.56 to guard, 1.89 to sweep, 2.34 to recoil, eyes = blink(.92)),
-        motion(Action.NIGHTLORD, "lord_crescendo", 3.84, .42 to lowGuard, .81 to windup, 1.02 to downbeat,
-            1.39 to heavyWindup, 1.6 to heavyStrike, 1.88 to spring, 2.12 to landing, 2.43 to recoil, 2.98 to flourish, 3.47 to salute,
-            spirit = listOf(1.28 to 0.0, 1.89 to .63, 2.17 to 1.0, 2.54 to .86, 3.11 to 0.0)),
+        motion(Action.NIGHTLORD, "lord_charge", 3.6, .45 to tuckLyre, 1.02 to tuckLyre,
+            1.29 to readyToPluck, 1.54 to callSpirit, 2.29 to callSpirit, 2.85 to listen,
+            spirit = listOf(1.35 to 0.0, 1.85 to .93, 2.28 to .93, 2.88 to 0.0)),
+        motion(Action.NIGHTLORD, "lord_lunge", 3.23, .58 to readyToPluck, .96 to readyToPluck,
+            1.23 to strikeString.copy(step = .62), 1.85 to strikeString.copy(step = .62), 2.45 to tuckLyre),
+        motion(Action.NIGHTLORD, "lord_recoil", 3.55, .52 to callSpirit, 1.22 to callSpirit,
+            1.60 to tuckLyre, 2.18 to tuckLyre, 2.72 to listen,
+            spirit = listOf(.38 to 0.0, .85 to 1.0, 1.44 to 1.0, 2.12 to 0.0)),
+        motion(Action.NIGHTLORD, "lord_evade", 3.12, .37 to tuckLyre, .66 to tuckLyre.copy(step = -.95),
+            1.14 to tuckLyre.copy(step = -.95), 1.67 to readyToPluck, 1.92 to strikeString, 2.44 to strikeString),
+        motion(Action.NIGHTLORD, "lord_crescendo", 3.84, .49 to readyToPluck, .80 to strikeString,
+            1.13 to readyToPluck, 1.42 to strikeString, 1.86 to callSpirit, 2.72 to callSpirit, 3.22 to listen,
+            spirit = listOf(1.64 to 0.0, 2.12 to 1.0, 2.75 to 1.0, 3.29 to 0.0)),
 
-        // The ritual opens a space beside the harp, holds the spirit at full strength, then dismisses it.
-        motion(Action.ULTIMATE, "ultimate", 3.85, .45 to lowGuard, .97 to heavyWindup, 1.36 to flourish,
-            1.71 to spring, 1.99 to heavyStrike, 2.29 to recoil, 2.7 to flourish.copy(harp = 1.0), 3.24 to salute,
-            eyes = blink(.89, .31), spirit = listOf(.41 to 0.0, .92 to .44, 1.5 to 1.0, 2.2 to 1.0, 2.74 to .71, 3.46 to 0.0)),
-        motion(Action.ULTIMATE, "ultimate_requiem", 4.07, .44 to listen, .88 to guard, 1.29 to heavyWindup,
-            1.61 to flourish, 1.95 to sweep, 2.19 to downbeat, 2.5 to spring, 2.77 to landing, 3.22 to flourish, 3.65 to salute,
-            eyes = blink(.79, .34), spirit = listOf(.47 to 0.0, 1.12 to .52, 1.59 to .92, 2.1 to 1.0, 2.8 to .91, 3.6 to 0.0)),
+        // Hold still while the guardian enters. Give its silhouette a beat before lowering the hand.
+        motion(Action.ULTIMATE, "ultimate", 3.85, .50 to tuckLyre, .94 to tuckLyre, 1.30 to callSpirit,
+            2.49 to callSpirit, 2.98 to readStrings, 3.36 to listen,
+            eyes = blink(.65, .18), spirit = listOf(1.08 to 0.0, 1.63 to 1.0, 2.47 to 1.0, 3.04 to 0.0)),
+        motion(Action.ULTIMATE, "ultimate_requiem", 4.07, .53 to readStrings, .90 to readyToPluck,
+            1.15 to strikeString, 1.57 to callSpirit, 2.73 to callSpirit, 3.22 to tuckLyre,
+            eyes = blink(.52, .17), spirit = listOf(1.39 to 0.0, 1.92 to 1.0, 2.73 to 1.0, 3.34 to 0.0)),
         motion(Action.VICTORY, "victory", 3.6, .46 to stepRight, .84 to flourish, 1.4 to flourish.copy(arm = .83),
             1.91 to salute.copy(level = -.83), 2.52 to salute, 3.05 to listen, eyes = blink(1.78, .57)),
         motion(Action.VICTORY, "victory_cadence", 4.04, .5 to readStrings, .84 to testNote, 1.25 to upbeat,
