@@ -6,133 +6,133 @@
   "landmarks": {
     "eyes": [
       [
-        495,
-        319,
-        112,
-        84,
-        -8
+        480,
+        167,
+        44,
+        19,
+        3
       ],
       [
-        613,
-        297,
-        53,
-        74,
-        -8
+        538,
+        173,
+        28,
+        20,
+        6
       ]
     ],
     "neck": [
-      516,
-      433
+      504,
+      245
     ],
     "hips": [
       509,
-      751
+      527
     ],
     "feet": [
       508,
-      1027
+      1049
     ],
     "pluckShoulder": [
-      410,
-      552
+      420,
+      350
     ],
     "holdShoulder": [
-      597,
-      524
+      583,
+      383
     ],
     "wrist": [
-      558,
-      538
+      534,
+      407
     ],
     "harpPivot": [
-      706,
-      620
+      666,
+      510
     ],
     "strings": [
-      663,
-      517
+      626,
+      409
     ]
   },
   "layers": [
     {
       "id": "Spirit",
       "file": "parts/Spirit.png",
-      "x": 22,
-      "y": 169,
-      "width": 434,
-      "height": 325,
+      "x": 18,
+      "y": 190,
+      "width": 480,
+      "height": 239,
       "z": 0
     },
     {
       "id": "BackHair",
       "file": "parts/BackHair.png",
-      "x": 141,
-      "y": 83,
-      "width": 729,
-      "height": 930,
+      "x": 307,
+      "y": 42,
+      "width": 374,
+      "height": 784,
       "z": 1
     },
     {
       "id": "Dress",
       "file": "parts/Dress.png",
-      "x": 203,
-      "y": 393,
-      "width": 605,
-      "height": 645,
+      "x": 300,
+      "y": 237,
+      "width": 406,
+      "height": 822,
       "z": 2
     },
     {
       "id": "HoldArm",
       "file": "parts/HoldArm.png",
-      "x": 570,
-      "y": 493,
-      "width": 194,
-      "height": 144,
+      "x": 551,
+      "y": 356,
+      "width": 188,
+      "height": 184,
       "z": 3
     },
     {
       "id": "Lyre",
       "file": "parts/Lyre.png",
-      "x": 566,
-      "y": 413,
-      "width": 198,
-      "height": 225,
+      "x": 548,
+      "y": 327,
+      "width": 170,
+      "height": 192,
       "z": 4
     },
     {
       "id": "PluckArm",
       "file": "parts/PluckArm.png",
-      "x": 371,
-      "y": 465,
-      "width": 306,
-      "height": 193,
+      "x": 382,
+      "y": 308,
+      "width": 242,
+      "height": 218,
       "z": 5
     },
     {
       "id": "Head",
       "file": "parts/Head.png",
-      "x": 247,
-      "y": 31,
-      "width": 462,
-      "height": 458,
+      "x": 358,
+      "y": 32,
+      "width": 236,
+      "height": 319,
       "z": 6
     },
     {
       "id": "LidLeft",
       "file": "parts/LidLeft.png",
-      "x": 397,
-      "y": 221,
-      "width": 196,
-      "height": 196,
+      "x": 446,
+      "y": 133,
+      "width": 68,
+      "height": 68,
       "z": 7
     },
     {
       "id": "LidRight",
       "file": "parts/LidRight.png",
-      "x": 548,
-      "y": 232,
-      "width": 130,
-      "height": 130,
+      "x": 514,
+      "y": 149,
+      "width": 50,
+      "height": 50,
       "z": 8
     }
   ]
