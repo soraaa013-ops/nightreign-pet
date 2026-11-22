@@ -4,13 +4,13 @@
 
 桌宠下方常驻两条计时进度。第一条显示当前阶段和倒计时，第二条显示整局进度和剩余时间。缩圈时光环持续收紧，暂停时两条计时同时停住。第一夜、第二夜、夜王战各有一套动作，轻点绝招会唤出灵体。可以在「设置 → 桌宠」切换计时栏的详略或将它隐藏。[角色资源与动作](docs/CHARACTER_ASSETS.md) · [可编辑模型和动作工程](scripts/character-rig/editor/)
 
-下图为日漫造型预览版 `0.3.2-anime.1`。这一版使用纤细的全身比例、银发花冠、蓝紫色眼睛与象牙白长裙。Windows 用户请先从系统托盘退出小蜗，将新版 ZIP 完整解压到新文件夹，再打开其中的「小蜗渡夜.exe」。便携版重启时使用当前目录中的模型。[下载日漫版 Windows x64](https://github.com/soraaa013-ops/nightreign-pet/releases/download/v0.3.2-anime.1/Nightreign-Pet-0.3.2-anime.1-Windows-x64.zip)
+下图为日漫造型预览版 `0.3.3-anime.1`。这一版按复仇者的人偶体态重画了脸与全身。小蜗赤足捧着里拉琴，浅色披肩下是一袭钟形长裙。Windows 用户请先从系统托盘退出小蜗，将新版 ZIP 完整解压到新文件夹，再打开其中的「小蜗渡夜.exe」。便携版重启时使用当前目录中的模型。[下载日漫版 Windows x64](https://github.com/soraaa013-ops/nightreign-pet/releases/download/v0.3.3-anime.1/Nightreign-Pet-0.3.3-anime.1-Windows-x64.zip)
 
 从 GitHub Releases 下载对应系统的桌宠，或下载附带编辑工程的独立模型包。Windows 用户完整解压 ZIP 后双击「小蜗渡夜.exe」。首次运行会询问随包 Cubism Core 的使用条款。[下载桌宠和模型](https://github.com/soraaa013-ops/nightreign-pet/releases/latest) · [使用与验证范围](docs/BUILD_ARTIFACTS.md)
 
-<img src="docs/character/revenant-anime.webp" width="275" alt="小蜗待机、三场战斗、召唤与胜利动作的运行时预览">
+<img src="docs/character/v0.3.3-motions.webp" width="275" alt="小蜗待机、三场战斗、召唤与胜利动作的运行时预览">
 
-[日漫版桌宠截图](docs/character/revenant-anime-desktop.png) · [0.3.0 验收结果](docs/character/0.3.0.md)
+[桌宠窗口](docs/character/v0.3.3-desktop.png) · [实机脸部近照](docs/character/v0.3.3-face.png) · [0.3.0 验收结果](docs/character/0.3.0.md)
 
 ## 运行
 

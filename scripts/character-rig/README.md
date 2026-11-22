@@ -20,7 +20,7 @@
 
 ## 修改角色
 
-`Artwork.kt` 从 `art/revenant/layout.json` 读取部件的透明 PNG、层序和舞台位置，在眼周加密网格。可在 `landmarks` 中调整颈、髋、脚、两肩、腕、琴枕、琴弦与双眼。眼项格式为 `[中心 x, 中心 y, 完整宽度, 完整高度, 顺时针角度]`。可选图层使用 `role` 复用绑定，也可独立指定 `LeftFoot`、`RightFoot`、`Cape`、`FrontHair` 或 `Spirit`。移除召唤图层会同时省略它的参数和曲线。
+`Artwork.kt` 从 `art/revenant/layout.json` 读取部件的透明 PNG、层序和舞台位置，在眼周加密网格。可在 `landmarks` 中调整颈、髋、脚、两肩、腕、琴枕、琴弦与双眼。眼项格式为 `[中心 x, 中心 y, 完整宽度, 完整高度, 顺时针角度, 闭合睫线偏移]`。最后一项从眼心沿倾斜眼轴的垂线向下量到闭合睫毛中点，以像素计。旧画稿省略这项时使用眼高的四分之一。可选图层使用 `role` 复用绑定，也可独立指定 `LeftFoot`、`RightFoot`、`Cape`、`FrontHair` 或 `Spirit`。移除召唤图层会同时省略它的参数和曲线。
 
 `Rig.kt` 负责各部位的关键形与附加变形。`Motions.kt` 定义关键姿态、节拍与过渡，参数范围见表。
 
@@ -29,7 +29,7 @@
 | `ParamBreath` | 0 至 1 | 胸部轻微扩张，头、琴和手随呼吸起伏 |
 | `ParamHeadTilt` | −1 至 1 | 头绕颈侧倾，后发根部与双眼睑跟随 |
 | `ParamHairSway` | −1 至 1 | 后发、披肩和裙摆分幅摆动 |
-| `ParamEyeOpen` | 0 至 1 | 双眼网格收拢，0 时使用闭眼画稿 |
+| `ParamEyeOpen` | 0 至 1 | 虹膜随网格向闭合睫线收拢，最后十分之一行程显出闭眼笔触 |
 | `ParamHarp` | −1 至 1 | 调整持琴手肘、乐器与演奏手的位置 |
 | `ParamPluck` | −1 至 1 | 肩、腕和指尖分段转动，琴弦局部振动 |
 | `ParamBodyLean` | −1 至 1 | 身躯以髋部为轴移重心，脚底保持支撑 |

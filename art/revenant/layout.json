@@ -6,51 +6,53 @@
   "landmarks": {
     "eyes": [
       [
-        480,
-        167,
-        44,
-        19,
-        3
+        459,
+        193,
+        53,
+        36,
+        -4,
+        10
       ],
       [
-        538,
-        173,
-        28,
-        20,
-        6
+        541,
+        193,
+        51,
+        36,
+        4,
+        10
       ]
     ],
     "neck": [
-      504,
-      245
+      499,
+      262
     ],
     "hips": [
-      509,
-      527
+      500,
+      557
     ],
     "feet": [
-      508,
-      1049
+      499,
+      1036
     ],
     "pluckShoulder": [
-      420,
-      350
+      411,
+      405
     ],
     "holdShoulder": [
-      583,
-      383
+      573,
+      370
     ],
     "wrist": [
-      534,
-      407
+      531,
+      403
     ],
     "harpPivot": [
-      666,
-      510
+      670,
+      488
     ],
     "strings": [
-      626,
-      409
+      624,
+      369
     ]
   },
   "layers": [
@@ -66,73 +68,73 @@
     {
       "id": "BackHair",
       "file": "parts/BackHair.png",
-      "x": 307,
-      "y": 42,
-      "width": 374,
-      "height": 784,
+      "x": 294,
+      "y": 55,
+      "width": 411,
+      "height": 569,
       "z": 1
     },
     {
       "id": "Dress",
       "file": "parts/Dress.png",
-      "x": 300,
-      "y": 237,
-      "width": 406,
-      "height": 822,
+      "x": 213,
+      "y": 245,
+      "width": 566,
+      "height": 804,
       "z": 2
     },
     {
       "id": "HoldArm",
       "file": "parts/HoldArm.png",
-      "x": 551,
-      "y": 356,
-      "width": 188,
-      "height": 184,
+      "x": 544,
+      "y": 353,
+      "width": 184,
+      "height": 155,
       "z": 3
     },
     {
       "id": "Lyre",
       "file": "parts/Lyre.png",
-      "x": 548,
-      "y": 327,
-      "width": 170,
-      "height": 192,
+      "x": 581,
+      "y": 245,
+      "width": 143,
+      "height": 249,
       "z": 4
     },
     {
       "id": "PluckArm",
       "file": "parts/PluckArm.png",
-      "x": 382,
-      "y": 308,
-      "width": 242,
-      "height": 218,
+      "x": 354,
+      "y": 320,
+      "width": 274,
+      "height": 232,
       "z": 5
     },
     {
       "id": "Head",
       "file": "parts/Head.png",
-      "x": 358,
-      "y": 32,
-      "width": 236,
-      "height": 319,
+      "x": 348,
+      "y": 29,
+      "width": 300,
+      "height": 300,
       "z": 6
     },
     {
       "id": "LidLeft",
       "file": "parts/LidLeft.png",
-      "x": 446,
-      "y": 133,
-      "width": 68,
-      "height": 68,
+      "x": 412,
+      "y": 146,
+      "width": 94,
+      "height": 94,
       "z": 7
     },
     {
       "id": "LidRight",
       "file": "parts/LidRight.png",
-      "x": 514,
-      "y": 149,
-      "width": 50,
-      "height": 50,
+      "x": 494,
+      "y": 146,
+      "width": 94,
+      "height": 94,
       "z": 8
     }
   ]

@@ -1,5 +1,6 @@
 /** Public Cubism Core fields inspected by the desktop tests. */
 interface CoreModel {
+  canvasinfo: { PixelsPerUnit: number }
   parameters: {
     ids: string[]
     minimumValues: Float32Array
@@ -11,6 +12,7 @@ interface CoreModel {
     ids: string[]
     opacities: Float32Array
     vertexPositions: Float32Array[]
+    indices: Uint16Array[]
     indexCounts: Int32Array
   }
   update(): void
@@ -151,6 +153,64 @@ export async function inspectCharacterRig() {
       actions[action] = { parameters: [...activeParameters], meshes: [...activeMeshes], files }
     }
 
+    // Locate a point on each lid in the underlying head triangle using the neutral mesh.
+    // Sampling the same skin point handles the two meshes having different triangulations.
+    const head = drawables.ids.indexOf('ArtHead')
+    const lids = ['ArtLidLeft', 'ArtLidRight'].map((id) => drawables.ids.indexOf(id))
+    function skinAnchor(lid: number) {
+      const points = rest[lid]
+      const middle = Math.floor(points.length / 4)
+      const x = points[middle * 2],
+        y = points[middle * 2 + 1]
+      const triangles = drawables.indices[head],
+        skin = rest[head]
+      for (let t = 0; t < triangles.length; t += 3) {
+        const [a, b, c] = [triangles[t] * 2, triangles[t + 1] * 2, triangles[t + 2] * 2]
+        const bx = skin[b] - skin[a],
+          by = skin[b + 1] - skin[a + 1]
+        const cx = skin[c] - skin[a],
+          cy = skin[c + 1] - skin[a + 1]
+        const det = bx * cy - by * cx
+        if (Math.abs(det) < 1e-12) continue
+        const u = ((x - skin[a]) * cy - (y - skin[a + 1]) * cx) / det
+        const v = (bx * (y - skin[a + 1]) - by * (x - skin[a])) / det
+        if (Math.min(u, v, 1 - u - v) >= -1e-5)
+          return { lid, vertex: middle * 2, corners: [a, b, c], weights: [1 - u - v, u, v] }
+      }
+      throw new Error(`${drawables.ids[lid]} 的眼睑采样点落在头部网格之外`)
+    }
+    const anchors = lids.map(skinAnchor)
+    let maxLidDriftPx = 0,
+      maxMidBlinkOpacity = 0,
+      minClosedOpacity = 1
+    for (const tilt of [-1, 0, 1]) {
+      parameters.values.set(parameters.defaultValues)
+      for (const [id, value] of Object.entries({
+        ParamHeadTilt: tilt,
+        ParamBreath: 0.7,
+        ParamBodyLean: tilt,
+        ParamStride: -tilt,
+        ParamBodyLevel: 0.65,
+      }))
+        parameters.values[parameters.ids.indexOf(id)] = value
+      model.update()
+      // A closed lid must follow the skin even while the iris beneath it is being squeezed.
+      const skin = new Float32Array(drawables.vertexPositions[head])
+      for (const open of [1, 0.75, 0.5, 0.25, 0]) {
+        parameters.values[parameters.ids.indexOf('ParamEyeOpen')] = open
+        model.update()
+        for (const { lid, vertex, corners, weights } of anchors) {
+          const point = drawables.vertexPositions[lid]
+          const sample = (axis: number) =>
+            corners.reduce((n, i, k) => n + weights[k] * skin[i + axis], 0)
+          const drift = Math.hypot(sample(0) - point[vertex], sample(1) - point[vertex + 1])
+          maxLidDriftPx = Math.max(maxLidDriftPx, drift * model.canvasinfo.PixelsPerUnit)
+          if (open === 0) minClosedOpacity = Math.min(minClosedOpacity, drawables.opacities[lid])
+          else maxMidBlinkOpacity = Math.max(maxMidBlinkOpacity, drawables.opacities[lid])
+        }
+      }
+    }
+
     const version = core.Version.csmGetVersion()
     return {
       consistency,
@@ -162,6 +222,7 @@ export async function inspectCharacterRig() {
       textures: refs.Textures.length,
       triangles: Array.from(drawables.indexCounts).reduce((a, b) => a + b, 0) / 3,
       parameterMeshes,
+      face: { maxLidDriftPx, maxMidBlinkOpacity, minClosedOpacity },
       actions,
     }
   } finally {

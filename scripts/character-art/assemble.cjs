@@ -7,13 +7,18 @@ const root = path.resolve(__dirname, '../../art/revenant')
 
 async function assemble() {
   const composition = JSON.parse(await fs.readFile(path.join(root, 'composition.json'), 'utf8'))
-  const sheet = await fs.readFile(path.join(root, 'painted-parts.png'))
+  const paintings = {}
+  for (const { painting = 'painted-parts.png' } of composition.layers) {
+    if (!(painting in paintings)) {
+      paintings[painting] = (await fs.readFile(path.join(root, painting))).toString('base64')
+    }
+  }
   const blink = await fs.readFile(path.join(root, 'painted-blink.png'))
   const spirit = await fs.readFile(path.join(root, 'painted-spirit.png'))
   const window = new BrowserWindow({ show: false, webPreferences: { sandbox: true } })
   await window.loadURL('about:blank')
   const result = await window.webContents.executeJavaScript(
-    `(${rasterize.toString()})(${JSON.stringify(composition)}, ${JSON.stringify(sheet.toString('base64'))}, ${JSON.stringify(blink.toString('base64'))}, ${JSON.stringify(spirit.toString('base64'))})`,
+    `(${rasterize.toString()})(${JSON.stringify(composition)}, ${JSON.stringify(paintings)}, ${JSON.stringify(blink.toString('base64'))}, ${JSON.stringify(spirit.toString('base64'))})`,
   )
   await fs.mkdir(path.join(root, 'parts'), { recursive: true })
   for (const layer of result.images) {
@@ -39,7 +44,8 @@ async function rasterize(
     await image.decode()
     return image
   }
-  const source = await decode(input)
+  const paintings = {}
+  for (const [file, data] of Object.entries(input)) paintings[file] = await decode(data)
   function surface(width, height) {
     const canvas = document.createElement('canvas')
     canvas.width = width
@@ -69,6 +75,7 @@ async function rasterize(
     z,
     {
       id,
+      painting = 'painted-parts.png',
       source: crop,
       clip,
       place: [x, y, width, height],
@@ -89,11 +96,12 @@ async function rasterize(
       ctx.closePath()
       ctx.clip()
     }
-    ctx.drawImage(source, ...crop, 0, 0, width, height)
-    // Discard near-transparent matte noise outside the painted antialiased outline.
+    ctx.drawImage(paintings[painting], ...crop, 0, 0, width, height)
+    // Remove the cutout matte gradually so faint rectangles cannot surround the hair or feet.
     const pixels = ctx.getImageData(0, 0, width, height)
     for (let i = 3; i < pixels.data.length; i += 4) {
-      if (pixels.data[i] < 12) pixels.data[i] = 0
+      const alpha = pixels.data[i]
+      if (alpha < 96) pixels.data[i] = alpha * Math.max(0, (alpha - 32) / 64)
     }
     ctx.putImageData(pixels, 0, 0)
     combined.getContext('2d').drawImage(cutout, x, y)
@@ -108,24 +116,21 @@ async function rasterize(
   thumbContext.drawImage(combined, 0, 0, thumbnail.width, thumbnail.height)
   const portrait = thumbnail.toDataURL('image/webp', 0.94).split(',')[1]
   const head = layout.layers.find(({ id }) => id === 'Head')
-  const closed = surface(head.width, head.height)
-  const closedContext = closed.getContext('2d')
-  closedContext.setTransform(...eyelids.registration)
-  closedContext.imageSmoothingQuality = 'high'
-  closedContext.drawImage(await decode(blink), 0, 0, head.width, head.height)
-  for (const {
-    id,
-    center: [cx, cy],
-    radii: [rx, ry],
-    tilt,
-  } of eyelids.layers) {
+  const closed = await decode(blink)
+  for (const [index, { id, radii: [rx, ry], registration }] of eyelids.layers.entries()) {
+    const [eyeX, eyeY, , , tilt] = landmarks.eyes[index]
+    const cx = eyeX - head.x
+    const cy = eyeY - head.y
     const half = Math.ceil(Math.hypot(rx, ry))
     const size = half * 2
     const cutout = surface(size, size)
     const ctx = cutout.getContext('2d')
     const left = cx - half,
       top = cy - half
-    ctx.drawImage(closed, -left, -top)
+    ctx.translate(-left, -top)
+    ctx.transform(...(registration ?? eyelids.registration))
+    ctx.imageSmoothingQuality = 'high'
+    ctx.drawImage(closed, 0, 0, head.width, head.height)
     const patch = ctx.getImageData(0, 0, size, size)
     const angle = (tilt * Math.PI) / 180
     for (let y = 0; y < size; y++) {

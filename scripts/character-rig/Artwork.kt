@@ -9,7 +9,8 @@ import javax.imageio.ImageIO
 import kotlin.math.*
 
 data class Point(val x: Float, val y: Float)
-data class Eye(val center: Point, val halfWidth: Float, val halfHeight: Float, val angle: Float)
+data class Eye(val center: Point, val halfWidth: Float, val halfHeight: Float, val angle: Float,
+               val lashOffset: Float = halfHeight * .5f)
 data class Landmarks(
     val neck: Point = Point(508f, 345f), val hips: Point = Point(510f, 754f), val feet: Point = Point(512f, 1027f),
     val pluckShoulder: Point = Point(442f, 491f), val holdShoulder: Point = Point(593f, 496f),
@@ -46,8 +47,11 @@ fun loadArtwork(file: Path): Artwork {
     }
     val eyes = landmarks["eyes"]?.jsonArray?.map { item ->
         val v = item.jsonArray.map { it.jsonPrimitive.float }
-        require(v.size == 5 && v[2] > 0 && v[3] > 0) { "eyes expects [x, y, width, height, degrees]" }
-        Eye(Point(v[0], v[1]), v[2] / 2, v[3] / 2, Math.toRadians(v[4].toDouble()).toFloat())
+        require(v.size in 5..6 && v.all { it.isFinite() } && v[2] > 0 && v[3] > 0) {
+            "eyes expects [x, y, width, height, degrees, optional closed lash offset]"
+        }
+        Eye(Point(v[0], v[1]), v[2] / 2, v[3] / 2, Math.toRadians(v[4].toDouble()).toFloat(),
+            v.getOrElse(5) { v[3] * .25f })
     } ?: defaults.eyes
     require(eyes.size == 2)
     return Artwork(size[0], size[1], layers, Landmarks(

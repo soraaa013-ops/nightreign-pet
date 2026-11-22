@@ -101,6 +101,9 @@ test('正式小蜗在 Cubism 中局部变形，并在桌面完成待机、轻触
   expect(rig.parameterMeshes.ParamPluck).toContain('ArtPluckArm')
   expect(rig.parameterMeshes.ParamHarp).toContain('ArtLyre')
   expect(rig.parameterMeshes.ParamEyeOpen.sort()).toEqual(['ArtHead', 'ArtLidLeft', 'ArtLidRight'])
+  expect(rig.face.maxLidDriftPx, '两侧眼睑随头部运动的偏差（原画像素）').toBeLessThan(0.5)
+  expect(rig.face.maxMidBlinkOpacity, '半闭时虹膜上不能叠出第二套睫线').toBeLessThan(0.01)
+  expect(rig.face.minClosedOpacity, '闭眼时两边均显示完整的闭眼笔触').toBeGreaterThan(0.99)
   expect(rig.triangles).toBeGreaterThan(2)
   expect(rig.actions.battle2.files.length).toBeGreaterThan(1)
   expect(rig.actions.nightlord.files.length).toBeGreaterThan(1)
@@ -225,7 +228,7 @@ test('正式小蜗在 Cubism 中局部变形，并在桌面完成待机、轻触
   )
 })
 
-test('50%、125%、200% 缩放下的小蜗从花冠到鞋均完整，三种状态条保留独立空间', async ({
+test('50%、125%、200% 缩放下的小蜗从花冠到脚尖均完整，三种状态条保留独立空间', async ({
   launchApp,
 }, info) => {
   test.setTimeout(180_000)

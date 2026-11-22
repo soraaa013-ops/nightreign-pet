@@ -44,11 +44,12 @@ private fun blink(p: Point, openness: Float, eyes: List<Eye>): Point {
         val dx = p.x - eye.center.x
         val dy = p.y - eye.center.y
         val across = dx * c + dy * s
-        val arc = (1f - (across / eye.halfWidth).pow(2)).coerceIn(0f, 1f) * 3f
-        val height = -dx * s + dy * c - arc
-        val horizontal = 1f - smooth(eye.halfWidth * .84f, eye.halfWidth + 11f, abs(across))
-        val vertical = 1f - smooth(eye.halfHeight + 1f, eye.halfHeight + 17f, abs(height))
-        val shift = -height * .95f * horizontal * vertical * (1f - openness)
+        val height = -dx * s + dy * c
+        val corner = (across / eye.halfWidth).pow(2).coerceAtMost(1f)
+        val lash = eye.lashOffset - corner * min(3f, eye.halfHeight * .24f)
+        val horizontal = 1f - smooth(eye.halfWidth, eye.halfWidth * 1.4f, abs(across))
+        val vertical = 1f - smooth(eye.halfHeight, eye.halfHeight * 1.65f, abs(height))
+        val shift = (lash - height) * .99f * horizontal * vertical * (1f - openness)
         result = result.shift(-s * shift, c * shift)
     }
     return result
@@ -216,7 +217,8 @@ fun makeRig(art: Artwork): RigIR {
             offsets = binding.localKeys(layer.role, surface.points), page = 0, tile = layer.tileId, drawOrder = order,
             shapes = binding.shapes(layer, surface.points, order),
             channels = when (layer.role) {
-                in lids -> mapOf(Channel.OPACITY to opacity(Control.EYES, listOf(0f to 1f, .23f to .98f, .52f to .58f, .82f to 0f, 1f to 0f)))
+                // Only expose the painted lash once the iris has collapsed to a thin line.
+                in lids -> mapOf(Channel.OPACITY to opacity(Control.EYES, listOf(0f to 1f, .025f to 1f, .1f to 0f, 1f to 0f)))
                 "Spirit" -> mapOf(Channel.OPACITY to opacity(Control.SPIRIT, listOf(0f to 0f, .1f to 0f, .45f to .64f, .78f to .94f, 1f to 1f)))
                 else -> emptyMap()
             })
