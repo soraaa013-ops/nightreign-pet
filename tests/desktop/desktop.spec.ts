@@ -323,7 +323,7 @@ test('四页设置可由键盘操作，非法草稿被拒，局部默认及偏�
     .poll(async () => (await snapshot(pet)).preferences)
     .toMatchObject({ quietMode: false, intensity: 'high', sfxVolume: 100 })
   await control.getByRole('button', { name: '预览', exact: true }).click()
-  await expect(pet.getByText('夜雨将至', { exact: true })).toBeVisible()
+  await expect(pet.getByText('缩圈效果预览', { exact: true })).toBeVisible()
   const hasRain = () =>
     pet.locator('.rain-canvas').evaluate((canvas: HTMLCanvasElement) => {
       const context = canvas.getContext('2d')!
