@@ -1,5 +1,5 @@
 import { _electron as electron, expect } from '@playwright/test'
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
 
@@ -77,7 +77,13 @@ try {
   expect(result.environment.packaged).toBe(true)
   expect(result.environment.platform).toBe(process.platform)
   expect(result.environment.architecture).toBe(process.env.NIGHTREIGN_EXPECTED_ARCH ?? process.arch)
-  const dataLocation = relative(profile, result.environment.userData)
+  // macOS /var aliases /private/var; compare filesystem identities, not spellings.
+  const [canonicalProfile, canonicalUserData] = await Promise.all([
+    realpath(profile),
+    realpath(result.environment.userData),
+  ])
+  result.profileIsolation = { requested: profile, canonicalProfile, canonicalUserData }
+  const dataLocation = relative(canonicalProfile, canonicalUserData)
   expect(
     isAbsolute(dataLocation) ||
       dataLocation === '..' ||
