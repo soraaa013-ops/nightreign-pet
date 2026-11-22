@@ -1,0 +1,80 @@
+{
+  "canvas": [
+    1000,
+    1120
+  ],
+  "layers": [
+    {
+      "id": "BackHair",
+      "file": "parts/BackHair.png",
+      "x": 100,
+      "y": 53,
+      "width": 795,
+      "height": 976,
+      "z": 0
+    },
+    {
+      "id": "Dress",
+      "file": "parts/Dress.png",
+      "x": 192,
+      "y": 338,
+      "width": 622,
+      "height": 705,
+      "z": 1
+    },
+    {
+      "id": "HoldArm",
+      "file": "parts/HoldArm.png",
+      "x": 570,
+      "y": 466,
+      "width": 193,
+      "height": 139,
+      "z": 2
+    },
+    {
+      "id": "Lyre",
+      "file": "parts/Lyre.png",
+      "x": 582,
+      "y": 371,
+      "width": 181,
+      "height": 225,
+      "z": 3
+    },
+    {
+      "id": "PluckArm",
+      "file": "parts/PluckArm.png",
+      "x": 389,
+      "y": 421,
+      "width": 284,
+      "height": 216,
+      "z": 4
+    },
+    {
+      "id": "Head",
+      "file": "parts/Head.png",
+      "x": 255,
+      "y": 23,
+      "width": 410,
+      "height": 400,
+      "z": 5
+    },
+    {
+      "id": "LidLeft",
+      "file": "parts/LidLeft.png",
+      "x": 429,
+      "y": 213,
+      "width": 108,
+      "height": 108,
+      "z": 6
+    },
+    {
+      "id": "LidRight",
+      "file": "parts/LidRight.png",
+      "x": 535,
+      "y": 208,
+      "width": 80,
+      "height": 80,
+      "z": 7
+    }
+  ]
+}

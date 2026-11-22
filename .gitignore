@@ -1,0 +1,11 @@
+node_modules/
+# The Cubism Core comes from the official SDK and is included in the packaged application.
+resources/character/cubism-core/live2dcubismcore.min.js
+out/
+release/
+test-results/
+playwright-report/
+coverage/
+.tmp/
+*.log
+.DS_Store

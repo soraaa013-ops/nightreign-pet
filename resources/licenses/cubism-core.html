@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'" />
+    <title>Cubism Core 使用条款</title>
+    <style>
+      :root { color-scheme: dark; font: 16px/1.65 system-ui, "Microsoft YaHei", sans-serif; background: #131a21; color: #f0efeb; }
+      * { box-sizing: border-box; }
+      body { margin: 0; }
+      main { max-width: 42rem; margin: auto; padding: clamp(1rem, 4vw, 2rem); }
+      h1 { margin: 0 0 .8rem; font-size: 1.55rem; line-height: 1.3; }
+      p, ul { margin: .7rem 0; }
+      ul { padding-left: 1.5rem; }
+      li + li { margin-top: .35rem; }
+      a { color: #dcc38e; text-underline-offset: .18em; }
+      form { margin-top: 1.3rem; display: flex; flex-wrap: wrap; gap: .7rem; }
+      button { min-height: 42px; padding: .35rem 1.1rem; border: 1px solid #78828b; border-radius: .4rem; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+      button[value="accept"] { background: #d8bd87; border-color: #d8bd87; color: #172027; font-weight: 650; }
+      :focus-visible { outline: 3px solid #9ddcfd; outline-offset: 3px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Cubism Core 使用条款</h1>
+      <p>小蜗使用 Live2D Cubism Core 播放角色动画。这份约定仅适用于随应用提供的 Cubism Core 代码。</p>
+      <ul>
+        <li>按 Live2D 许可授权的方式使用 Core，并保留其版权标识和许可声明。</li>
+        <li>除许可或适用法律允许外，请勿修改、反向工程、反编译或反汇编 Core，也请勿单独分发、转授权或出售它。</li>
+        <li>如果你依照许可再分发包含 Core 的应用，请保留 Core 原样，并要求接收者同意同等保护条款。</li>
+      </ul>
+      <p>选择「同意并进入」，即表示你同意遵守 Live2D 许可中适用于保护该可再分发代码的条款。</p>
+      <p><a href="https://www.live2d.com/eula/live2d-proprietary-software-license-agreement_cn.html" target="_blank" rel="noreferrer noopener">阅读 Live2D 官方许可（2.1 版，浏览器打开）</a></p>
+      <form method="get" action="./cubism-core.html">
+        <input type="hidden" name="view" value="consent" />
+        <button type="submit" name="decision" value="accept">同意并进入</button>
+        <button type="submit" name="decision" value="exit">退出</button>
+      </form>
+    </main>
+  </body>
+</html>

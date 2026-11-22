@@ -1,0 +1,118 @@
+name: Native release check
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native-package:
+    name: ${{ matrix.label }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-2022
+            label: Windows x64 portable ZIP
+            platform: windows-x64
+            arch: x64
+          - runner: macos-15
+            label: macOS arm64 DMG
+            platform: macos-arm64
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    env:
+      # These checks do not sign, notarize, publish, or create a release.
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      NIGHTREIGN_EXPECTED_ARCH: ${{ matrix.arch }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Restore verified official Cubism Core
+        run: npm run prepare:cubism
+      - name: Type check
+        run: npm run typecheck
+      - name: Core and integration tests
+        run: npm test
+      - name: Build application
+        run: npm run build
+      - name: Build Windows portable archive
+        if: runner.os == 'Windows'
+        run: npx electron-builder --win zip --x64 --publish never
+      - name: Build macOS Apple silicon disk image
+        if: runner.os == 'macOS'
+        run: npx electron-builder --mac dmg --arm64 --publish never
+      - name: Extract and launch the Windows release archive
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $archives = @(Get-ChildItem release -Filter '*.zip')
+          if ($archives.Count -ne 1) { throw "Expected one release ZIP, got $($archives.Count)" }
+          $destination = Join-Path $env:RUNNER_TEMP 'nightreign-release-zip'
+          Expand-Archive -LiteralPath $archives[0].FullName -DestinationPath $destination
+          $executables = @(Get-ChildItem $destination -Filter '*.exe' | Where-Object { $_.Name -notmatch 'uninstall' })
+          if ($executables.Count -ne 1) { throw "Expected one app executable, got $($executables.Count)" }
+          node tests/packaged-smoke.mjs $executables[0].FullName
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Mount and launch the macOS release disk image
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          images=(release/*.dmg)
+          test "${#images[@]}" -eq 1
+          mount="$RUNNER_TEMP/nightreign-dmg"
+          mkdir -p "$mount"
+          hdiutil attach "${images[0]}" -mountpoint "$mount" -nobrowse -readonly
+          trap 'hdiutil detach "$mount" || true' EXIT
+          apps=("$mount"/*.app)
+          test "${#apps[@]}" -eq 1
+          binary=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "${apps[0]}/Contents/Info.plist")
+          file "${apps[0]}/Contents/MacOS/$binary"
+          node tests/packaged-smoke.mjs "${apps[0]}/Contents/MacOS/$binary"
+      - name: Hash distributable files
+        shell: bash
+        run: |
+          node --input-type=module <<'JS'
+          import { createHash } from 'node:crypto';
+          import { readdir, readFile, writeFile } from 'node:fs/promises';
+          const files = (await readdir('release')).filter(name => /\.(zip|dmg)$/.test(name)).sort();
+          if (!files.length) throw new Error('No distributable package');
+          const lines = await Promise.all(files.map(async name => `${createHash('sha256').update(await readFile(`release/${name}`)).digest('hex')}  ${name}`));
+          await writeFile('release/SHA256SUMS.txt', lines.join('\n') + '\n');
+          JS
+      - name: Upload verified complete installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightreign-pet-${{ matrix.platform }}-${{ github.sha }}
+          path: |
+            release/*.zip
+            release/*.dmg
+            release/SHA256SUMS.txt
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+      - name: Upload native smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-smoke-${{ matrix.platform }}-${{ github.sha }}
+          path: test-results/packaged-smoke*
+          if-no-files-found: warn
+          retention-days: 7

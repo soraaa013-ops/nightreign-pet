@@ -1,0 +1,46 @@
+{
+	"Version": 3,
+	"FileReferences": {
+		"Moc": "revenant.moc3",
+		"Textures": [
+			"revenant.2048/texture_00.png"
+		],
+		"DisplayInfo": "revenant.cdi3.json",
+		"Motions": {
+			"Idle": [
+				{
+					"File": "revenant.idle.motion3.json"
+				}
+			],
+			"Touch": [
+				{
+					"File": "revenant.touch.motion3.json"
+				}
+			],
+			"Battle": [
+				{
+					"File": "revenant.battle.motion3.json"
+				}
+			],
+			"Ultimate": [
+				{
+					"File": "revenant.ultimate.motion3.json"
+				}
+			],
+			"Victory": [
+				{
+					"File": "revenant.victory.motion3.json"
+				}
+			]
+		}
+	},
+	"Groups": [
+		{
+			"Target": "Parameter",
+			"Name": "EyeBlink",
+			"Ids": [
+				"ParamEyeOpen"
+			]
+		}
+	]
+}

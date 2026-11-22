@@ -1,0 +1,76 @@
+{
+	"Version": 3,
+	"Parameters": [
+		{
+			"Id": "ParamBreath",
+			"GroupId": "",
+			"Name": "呼吸 / Breath"
+		},
+		{
+			"Id": "ParamHeadTilt",
+			"GroupId": "",
+			"Name": "侧首 / Head tilt"
+		},
+		{
+			"Id": "ParamHairSway",
+			"GroupId": "",
+			"Name": "发尾与披肩 / Hair sway"
+		},
+		{
+			"Id": "ParamEyeOpen",
+			"GroupId": "",
+			"Name": "睁眼 / Eyes open"
+		},
+		{
+			"Id": "ParamHarp",
+			"GroupId": "",
+			"Name": "持琴 / Cradle lyre"
+		},
+		{
+			"Id": "ParamPluck",
+			"GroupId": "",
+			"Name": "拨弦 / Pluck"
+		}
+	],
+	"ParameterGroups": [],
+	"Parts": [
+		{
+			"Id": "PartRevenant",
+			"Name": "Revenant"
+		}
+	],
+	"Drawables": [
+		{
+			"Id": "ArtBackHair",
+			"Name": "BackHair"
+		},
+		{
+			"Id": "ArtDress",
+			"Name": "Dress"
+		},
+		{
+			"Id": "ArtHoldArm",
+			"Name": "HoldArm"
+		},
+		{
+			"Id": "ArtLyre",
+			"Name": "Lyre"
+		},
+		{
+			"Id": "ArtPluckArm",
+			"Name": "PluckArm"
+		},
+		{
+			"Id": "ArtHead",
+			"Name": "Head"
+		},
+		{
+			"Id": "ArtLidLeft",
+			"Name": "LidLeft"
+		},
+		{
+			"Id": "ArtLidRight",
+			"Name": "LidRight"
+		}
+	]
+}

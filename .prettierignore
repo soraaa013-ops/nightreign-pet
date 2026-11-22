@@ -1,0 +1,8 @@
+node_modules/
+out/
+release/
+.tmp/
+test-results/
+src/renderer/live2d/vendor/
+resources/
+docs/research/

@@ -1,0 +1,91 @@
+{
+  "name": "nightreign-pet",
+  "version": "0.2.0",
+  "description": "小蜗 · 轻量课堂渡夜桌宠",
+  "main": "out/main/index.js",
+  "private": true,
+  "author": "Nightreign Pet contributors",
+  "scripts": {
+    "prepare:cubism": "node scripts/prepare-cubism.mjs",
+    "predev": "npm run prepare:cubism",
+    "dev": "electron-vite dev",
+    "prebuild": "npm run prepare:cubism",
+    "build": "electron-vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:desktop": "playwright test",
+    "pack": "npm run build && electron-builder --dir",
+    "dist:linux": "npm run build && electron-builder --linux tar.gz",
+    "dist:win": "npm run build && electron-builder --win nsis",
+    "dist:mac": "npm run build && electron-builder --mac dmg",
+    "format:check": "prettier --check src electron.vite.config.ts tsconfig.json package.json",
+    "dist:win:zip": "npm run build && electron-builder --win zip"
+  },
+  "build": {
+    "appId": "com.nightreign.pet",
+    "productName": "小蜗渡夜",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "out/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "resources",
+        "to": "resources"
+      }
+    ],
+    "asar": true,
+    "linux": {
+      "target": [
+        "tar.gz"
+      ],
+      "category": "Utility"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.utilities"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "icon": "resources/branding/icon.png"
+  },
+  "dependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.1",
+    "@types/node": "26.6.6",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.3.0",
+    "electron": "45.4.1",
+    "electron-builder": "26.18.0",
+    "electron-vite": "6.0.0",
+    "prettier": "3.10.1",
+    "typescript": "7.0.2",
+    "unzipper": "0.12.5",
+    "vite": "8.3.8",
+    "vitest": "5.1.1"
+  },
+  "overrides": {
+    "app-builder-lib": {
+      "minimatch": "11.0.9"
+    },
+    "@electron/universal": {
+      "minimatch": "11.0.9"
+    }
+  }
+}

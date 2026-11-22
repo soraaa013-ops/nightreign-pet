@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "status": "available",
+  "model": "revenant.model3.json",
+  "actions": {
+    "idle": {
+      "motion": {
+        "group": "Idle",
+        "index": 0
+      }
+    },
+    "touch": {
+      "motion": {
+        "group": "Touch",
+        "index": 0
+      }
+    },
+    "battle": {
+      "motion": {
+        "group": "Battle",
+        "index": 0
+      }
+    },
+    "ultimate": {
+      "motion": {
+        "group": "Ultimate",
+        "index": 0
+      }
+    },
+    "victory": {
+      "motion": {
+        "group": "Victory",
+        "index": 0
+      }
+    }
+  }
+}
