@@ -95,9 +95,9 @@ test('静音和安静模式阻止音效，恢复后延用音量，释放时关�
   const voices = context.oscillators.slice(-2)
   for (const voice of voices) {
     expect(voice.start).toHaveBeenCalledWith(context.currentTime)
-    expect(voice.frequency.exponentialRampToValueAtTime.mock.lastCall?.[1]).toBe(
-      context.currentTime + 1.55,
-    )
+    const peak = voice.frequency.exponentialRampToValueAtTime.mock.lastCall?.[1] as number
+    // The two authored ground waves start on frames 47 and 52 at 30 fps.
+    expect(peak - context.currentTime).toBeCloseTo((47 + 52) / (2 * 30), 3)
   }
 
   audio.dispose()
