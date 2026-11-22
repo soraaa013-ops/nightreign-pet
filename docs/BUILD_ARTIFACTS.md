@@ -9,7 +9,7 @@
 | Linux x64 tar.gz | 解压后运行目录中的 `nightreign-pet`。 |
 | 小蜗独立模型 ZIP | 完整解压后在匹配版本的 Cubism 播放器中打开 `revenant.model3.json`。`editor/` 有可编辑的 `.cmo3` 模型和 `.can3` 动画。 |
 
-每个发布文件的 SHA-256 列在 Release 附件 `SHA256SUMS.txt` 中。下载、解压、启动与数字签名分属不同验收项目，各平台的实际运行结果随版本记录。[GitHub 原生打包与测试](https://github.com/soraaa013-ops/nightreign-pet/actions/workflows/release-check.yml) · [角色专项验收](character/model-verification.md)
+每个发布文件的 SHA-256 列在 Release 附件 `SHA256SUMS.txt` 中。下载、解压、启动与数字签名分属不同验收项目，各平台的实际运行结果随版本记录。[GitHub 原生打包与测试](https://github.com/soraaa013-ops/nightreign-pet/actions/workflows/release-check.yml) · [角色专项验收](character/0.3.0.md)
 
 在项目根目录运行 `npm ci` 和 `npm run prepare:cubism`。Linux 与 Windows 分别使用 `npm run dist:linux`、`npm run dist:win:zip`，Apple 芯片 Mac 使用 `npm run dist:mac`。运行 `python3 scripts/package_character.py` 可生成独立模型包。[绑定与编辑工程](../scripts/character-rig/)
 

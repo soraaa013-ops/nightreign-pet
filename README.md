@@ -6,7 +6,9 @@
 
 从 GitHub Releases 下载对应系统的桌宠，或下载附带编辑工程的独立模型包。Windows 用户完整解压 ZIP 后双击「小蜗渡夜.exe」。首次运行会询问随包 Cubism Core 的使用条款。[下载桌宠和模型](https://github.com/soraaa013-ops/nightreign-pet/releases/latest) · [使用与验证范围](docs/BUILD_ARTIFACTS.md)
 
-<img src="docs/character/revenant-live2d.webp" width="275" alt="小蜗待机、三场战斗、召唤与胜利动作的桌宠实录">
+<img src="docs/character/revenant-live2d.webp" width="275" alt="小蜗待机、三场战斗、召唤与胜利动作的运行时预览">
+
+[默认尺寸战斗截图](docs/character/revenant-desktop.png) · [0.3.0 验收结果](docs/character/0.3.0.md)
 
 ## 运行
 

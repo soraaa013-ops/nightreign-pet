@@ -1,4 +1,6 @@
-# 小蜗桌宠第一版实测报告
+# 小蜗桌宠实测报告
+
+0.3.0 的仓库级回归、Windows 拖动和三场战斗验收另有记录。[0.3.0 验收](character/0.3.0.md)
 
 2026-11-22 · 0.2.0 随包提供自制小蜗 Live2D。[产品规格](../SPEC.md) · [测试方案](TEST_PLAN.md) · [角色动作、点透与故障专项报告](character/model-verification.md)
 
