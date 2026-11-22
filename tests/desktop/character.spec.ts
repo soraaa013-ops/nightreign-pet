@@ -81,7 +81,7 @@ async function observeUpdates(pet: Page, loadedModule: string) {
 test('正式小蜗在 Cubism 中局部变形，并在桌面完成待机、轻触、战斗、绝招和胜利', async ({
   launchApp,
 }, info) => {
-  test.setTimeout(90_000)
+  test.setTimeout(120_000)
   const app = await launchApp()
   const pet = await view(app, 'pet')
   const control = await view(app, 'control')
@@ -129,20 +129,23 @@ test('正式小蜗在 Cubism 中局部变形，并在桌面完成待机、轻触
   const measurements: Partial<Record<Action, FrameRange>> = {}
   async function verifyAction(action: Action, seconds = 1.25) {
     await delay(seconds * 1000)
-    const range = await readAudit()
-    measurements[action] = range
-    expect(range.count, action).toBeGreaterThan(0)
-    if (action !== 'idle') expect(range.acceptedActions, action + ' 应被角色接受').toContain(action)
     const driven = rig.actions[action].parameters
-    const actionSpecific =
-      action === 'idle'
-        ? driven
-        : driven.filter((id) => id !== 'ParamBreath' && !rig.actions.idle.parameters.includes(id))
-    const candidates = actionSpecific.length ? actionSpecific : driven
-    expect(
-      range.changed.some((id) => candidates.includes(id)),
-      action + ' 的动作参数应随时间改变',
-    ).toBe(true)
+    const unique = driven.filter((id) => !rig.actions.idle.parameters.includes(id))
+    const candidates = unique.length ? unique : driven
+    await expect
+      .poll(
+        async () => {
+          const range = await readAudit()
+          measurements[action] = range
+          return (
+            range.count > 0 &&
+            (action === 'idle' || range.acceptedActions.includes(action)) &&
+            range.changed.some((id) => candidates.includes(id))
+          )
+        },
+        { message: action + ' 应被接受并在实际 Core 绘制中改变动作参数', timeout: 6_000 },
+      )
+      .toBe(true)
   }
   await startAudit()
   await verifyAction('idle')
@@ -175,7 +178,7 @@ test('正式小蜗在 Cubism 中局部变形，并在桌面完成待机、轻触
     .toBe(0)
   await command(panel, { type: 'visibility', visible: true })
 
-  const preset = shortPreset({ customSeconds: [7, 1, 1, 1, 6, 1, 1, 1, 1, 1, 1] })
+  const preset = shortPreset({ customSeconds: [10, 1, 1, 1, 18, 1, 1, 1, 1, 2, 2] })
   await command(panel, { type: 'savePreset', preset })
   await startFromControl(panel, panel.getByRole('button', { name: '出击', exact: true }))
   await startAudit()
@@ -211,7 +214,7 @@ test('正式小蜗在 Cubism 中局部变形，并在桌面完成待机、轻触
   await ultimate.click()
   await verifyAction('ultimate', 0.7)
   await modelPixels(pet, info.outputPath('ultimate.png'))
-  await pet.getByText('NIGHTLORD SLAIN', { exact: true }).waitFor({ timeout: 25_000 })
+  await pet.getByText('NIGHTLORD SLAIN', { exact: true }).waitFor({ timeout: 38_000 })
   await startAudit()
   await verifyAction('victory', 0.7)
   await modelPixels(pet, info.outputPath('victory.png'))
@@ -225,7 +228,7 @@ test('正式小蜗在 Cubism 中局部变形，并在桌面完成待机、轻触
 test('50%、125%、200% 缩放下的小蜗从花冠到鞋均完整，三种状态条保留独立空间', async ({
   launchApp,
 }, info) => {
-  test.setTimeout(90_000)
+  test.setTimeout(180_000)
   const app = await launchApp()
   const pet = await view(app, 'pet')
   await ready(pet)

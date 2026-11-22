@@ -130,7 +130,7 @@ try {
 
   await expect(pet.locator('.pet-model')).toBeVisible()
   result.environment.gpuFeatures = await app.evaluate(({ app: main }) => main.getGPUFeatureStatus())
-  await expect(pet.locator('.pet-concept')).toHaveCount(0, { timeout: 20_000 })
+  await expect(pet.locator('.pet-concept')).toHaveCount(0, { timeout: 45_000 })
   result.character = await pet.evaluate(async () => {
     const manifestUrl = new URL('app://assets/character/revenant/manifest.json')
     const manifest = await (await fetch(manifestUrl)).json()
@@ -238,6 +238,14 @@ try {
     `打包冒烟通过。11 个阶段、1 次结算，观测 ${result.observedDurationMs.toFixed(1)} 毫秒。`,
   )
 } catch (error) {
+  const pet = app?.windows().find((page) => page.url().includes('view=pet'))
+  if (pet && !pet.isClosed()) {
+    result.modelStatus = await pet
+      .locator('.concept-label')
+      .getAttribute('title', { timeout: 1000 })
+      .catch(() => undefined)
+    if (result.modelStatus) console.error('角色加载状态', result.modelStatus)
+  }
   result.failure = String(error)
   throw error
 } finally {

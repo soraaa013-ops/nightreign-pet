@@ -263,10 +263,14 @@ export class CubismRuntime extends CubismUserModel {
       const blink = Array.from({ length: setting.getEyeBlinkParameterCount() }, (_, i) =>
         setting.getEyeBlinkParameterId(i),
       )
-      for (let n = 0; n < (variants ? count : 1); n++) {
-        const slot = (index + n) % count
-        const path = assetUrl(setting.getMotionFileName(group, slot), url)
-        const file = await loadBuffer(path, signal)
+      const slots = Array.from({ length: variants ? count : 1 }, (_, n) => (index + n) % count)
+      const files = await Promise.all(
+        slots.map(async (slot) => {
+          const path = assetUrl(setting.getMotionFileName(group, slot), url)
+          return { slot, path, file: await loadBuffer(path, signal) }
+        }),
+      )
+      for (const { slot, path, file } of files) {
         const motion = this.loadMotion(
           file,
           file.byteLength,

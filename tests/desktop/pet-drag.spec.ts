@@ -27,6 +27,47 @@ async function geometry(app: ElectronApplication, pet: Page) {
   return { ...desktop, canvas }
 }
 
+async function settledGeometry(app: ElectronApplication, pet: Page) {
+  let previous = '',
+    current: Awaited<ReturnType<typeof geometry>> | undefined
+  // Native bounds, browser layout and the WebGL backing buffer update separately.
+  await expect
+    .poll(
+      async () => {
+        current = await geometry(app, pet)
+        const { backingWidth, backingHeight, cssWidth, cssHeight, dpr } = current.canvas
+        const ready =
+          backingWidth === Math.round(cssWidth * dpr) &&
+          backingHeight === Math.round(cssHeight * dpr)
+        const key = JSON.stringify(current)
+        const stable = ready && key === previous
+        previous = key
+        return stable
+      },
+      {
+        intervals: [100, 150, 250],
+        timeout: 10_000,
+        message: '原生窗口、CSS尺寸与模型纹理均已稳定',
+      },
+    )
+    .toBe(true)
+  return current!
+}
+
+async function visibleModel(pet: Page, output: string) {
+  let painted: Awaited<ReturnType<typeof modelPixels>> | undefined
+  await expect
+    .poll(
+      async () => {
+        painted = await modelPixels(pet, output)
+        return painted.coverage
+      },
+      { timeout: 12_000, message: '等待合成器显示角色的有效像素' },
+    )
+    .toBeGreaterThan(0.025)
+  return painted!
+}
+
 for (const factor of [1.25, 1.5]) {
   test(`系统缩放 ${factor * 100}%：反复拖动保持窗口和模型大小，释放后可见`, async ({
     launchApp,
@@ -35,18 +76,27 @@ for (const factor of [1.25, 1.5]) {
     const app = await launchApp({ deviceScaleFactor: factor })
     const pet = await view(app, 'pet'),
       control = await view(app, 'control')
+    const { area } = await geometry(app, pet)
+    // Small virtual displays need enough movement room after DPI scaling.
+    const scale = Math.max(
+      50,
+      Math.min(
+        100,
+        Math.floor(Math.min((area.width - 100) / 320, (area.height - 100) / 350) * 100),
+      ),
+    )
     const preferences = (await snapshot(control)).preferences
     await command(control, {
       type: 'preferences',
       expectedRevision: preferences.revision,
-      patch: { quietMode: true },
+      patch: { quietMode: true, scale },
     })
     await control.close()
     await expect(pet.locator('.pet-concept')).toHaveCount(0, { timeout: 20000 })
     await command(pet, { type: 'drag', dx: -40, dy: -30 })
-    const before = await geometry(app, pet)
+    const before = await settledGeometry(app, pet)
     expect(before.canvas.dpr).toBeCloseTo(factor, 2)
-    const painted = await modelPixels(pet, info.outputPath('before.png'))
+    const painted = await visibleModel(pet, info.outputPath('before.png'))
     expect(painted.coverage).toBeGreaterThan(0.025)
     // This round trip previously enlarged the native window by ~100 logical pixels.
     await pet.evaluate(async () => {
@@ -65,7 +115,7 @@ for (const factor of [1.25, 1.5]) {
       }
       await window.nightreign.command({ type: 'drag', dx: 0, dy: 0, finished: true })
     })
-    const repeated = await geometry(app, pet)
+    const repeated = await settledGeometry(app, pet)
     expect(repeated.bounds).toEqual(before.bounds)
     expect(repeated.canvas.cssWidth).toBeCloseTo(before.canvas.cssWidth, 0)
     expect(repeated.canvas.backingWidth).toBe(before.canvas.backingWidth)
@@ -83,7 +133,7 @@ for (const factor of [1.25, 1.5]) {
       await pet.mouse.move(painted.solid.x - 18, painted.solid.y - 12, { steps: 3 })
       await pet.mouse.up()
     }
-    const dragged = await geometry(app, pet)
+    const dragged = await settledGeometry(app, pet)
     expect(dragged.bounds.x).toBeLessThan(before.bounds.x)
     expect(dragged.bounds.y).toBeLessThan(before.bounds.y)
     expect(Math.abs(dragged.bounds.width - before.bounds.width)).toBeLessThanOrEqual(2)
@@ -91,19 +141,19 @@ for (const factor of [1.25, 1.5]) {
     expect(dragged).toMatchObject({ focusable: false, maximized: false, zoom: 1 })
     expect(await pet.locator('body').getAttribute('data-native-drags')).toBe('0')
     expect(app.windows()).toHaveLength(1)
-    const afterPaint = await modelPixels(pet, info.outputPath('after.png'))
+    const afterPaint = await visibleModel(pet, info.outputPath('after.png'))
     const paintedHeight = (p: typeof painted) => (p.painted.bottom - p.painted.top) / p.height
     expect(Math.abs(paintedHeight(afterPaint) - paintedHeight(painted))).toBeLessThan(0.05)
 
     await command(pet, { type: 'drag', dx: 4096, dy: 4096, finished: true })
-    const corner = await geometry(app, pet)
+    const corner = await settledGeometry(app, pet)
     expect(
       Math.abs(corner.bounds.x + corner.bounds.width - corner.area.x - corner.area.width),
     ).toBeLessThanOrEqual(2)
     expect(
       Math.abs(corner.bounds.y + corner.bounds.height - corner.area.y - corner.area.height),
     ).toBeLessThanOrEqual(2)
-    expect((await snapshot(pet)).preferences.scale).toBe(100)
+    expect((await snapshot(pet)).preferences.scale).toBe(scale)
     await writeFile(
       info.outputPath('geometry.json'),
       JSON.stringify({ before, repeated, dragged, corner }, null, 2),
