@@ -157,7 +157,8 @@ export function validateCommand(input: unknown): Command {
       requireValue(typeof c.hit === 'boolean', '命中状态无效。')
       break
     case 'drag':
-      args('dx', 'dy')
+      fields(c, ['type', 'dx', 'dy', 'finished'], ['type', 'dx', 'dy'])
+      requireValue(c.finished === undefined || typeof c.finished === 'boolean', '拖动状态无效。')
       requireValue(
         [c.dx, c.dy].every(
           (n) => typeof n === 'number' && Number.isFinite(n) && Math.abs(n) <= 4096,

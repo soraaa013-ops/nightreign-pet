@@ -3,6 +3,7 @@ import { setTimeout as delay } from 'node:timers/promises'
 import type { Page } from '@playwright/test'
 import { shortPreset } from '../fixtures'
 import { command, expect, snapshot, startFromControl, test, view } from './app'
+import { modelPixels } from './model-pixels'
 import { inspectCharacterRig } from './character-rig'
 
 const actions = ['idle', 'touch', 'battle', 'ultimate', 'victory'] as const
@@ -12,82 +13,6 @@ async function ready(pet: Page) {
   await expect(pet.locator('.pet-model')).toBeVisible()
   await expect(pet.locator('.pet-concept')).toHaveCount(0, { timeout: 20_000 })
   await expect.poll(() => pet.evaluate(() => Boolean(window.Live2DCubismCore))).toBe(true)
-}
-
-async function modelPixels(pet: Page, output: string) {
-  const png = await pet.screenshot({
-    path: output,
-    omitBackground: true,
-    style: '.pet-scene > :not(.pet-model) { visibility: hidden !important }',
-  })
-  return pet.evaluate(async (base64) => {
-    const image = new Image()
-    image.src = 'data:image/png;base64,' + base64
-    await image.decode()
-    const canvas = document.createElement('canvas')
-    canvas.width = image.width
-    canvas.height = image.height
-    const ctx = canvas.getContext('2d')!
-    ctx.drawImage(image, 0, 0)
-    const { data } = ctx.getImageData(0, 0, image.width, image.height)
-    let opaque = 0,
-      transparent = 0,
-      nearest = Infinity
-    let solid = { x: 0, y: 0 }
-    const painted = { left: image.width, top: image.height, right: -1, bottom: -1 }
-    for (let y = 0; y < image.height; y++) {
-      for (let x = 0; x < image.width; x++) {
-        const alpha = data[4 * (y * image.width + x) + 3]
-        if (alpha < 8) transparent++
-        if (alpha >= 32) {
-          painted.left = Math.min(painted.left, x)
-          painted.top = Math.min(painted.top, y)
-          painted.right = Math.max(painted.right, x)
-          painted.bottom = Math.max(painted.bottom, y)
-        }
-        if (alpha < 225) continue
-        opaque++
-        const d = Math.hypot(x - image.width / 2, y - image.height / 2)
-        if (d < nearest) {
-          nearest = d
-          solid = { x: (x * innerWidth) / image.width, y: (y * innerHeight) / image.height }
-        }
-      }
-    }
-    // Find a transparent opening between opaque parts of the silhouette. Its
-    // center stays clear if the idle pose moves by a few pixels before clicking.
-    let gap: { x: number; y: number } | undefined
-    let best = 11
-    for (let y = 4; y < image.height * 0.78; y++) {
-      let lastSolid = -1
-      for (let x = 0; x < image.width; x++) {
-        if (data[(y * image.width + x) * 4 + 3] < 64) continue
-        const width = x - lastSolid,
-          mid = Math.floor((lastSolid + x) / 2)
-        if (lastSolid >= 0 && width > best) {
-          let clear = true
-          for (let dy = -3; dy <= 3 && clear; dy++)
-            for (let dx = -3; dx <= 3; dx++)
-              if (data[((y + dy) * image.width + mid + dx) * 4 + 3] > 4) clear = false
-          if (clear) {
-            best = width
-            gap = { x: (mid * innerWidth) / image.width, y: (y * innerHeight) / image.height }
-          }
-        }
-        lastSolid = x
-      }
-    }
-    return {
-      width: image.width,
-      height: image.height,
-      coverage: opaque / (image.width * image.height),
-      transparent: transparent / (image.width * image.height),
-      solid,
-      painted,
-      gap,
-      corner: data[3],
-    }
-  }, png.toString('base64'))
 }
 
 type FrameRange = { count: number; changed: string[]; acceptedActions: string[] }
@@ -177,6 +102,10 @@ test('正式小蜗在 Cubism 中局部变形，并在桌面完成待机、轻触
   expect(rig.parameterMeshes.ParamHarp).toContain('ArtLyre')
   expect(rig.parameterMeshes.ParamEyeOpen.sort()).toEqual(['ArtHead', 'ArtLidLeft', 'ArtLidRight'])
   expect(rig.triangles).toBeGreaterThan(2)
+  expect(rig.actions.battle2.files.length).toBeGreaterThan(1)
+  expect(rig.actions.nightlord.files.length).toBeGreaterThan(1)
+  expect(rig.actions.ultimate.meshes).toContain('ArtSpirit')
+  expect(rig.actions.idle.files.length).toBeGreaterThan(1)
   for (const action of actions)
     expect(rig.actions[action]?.meshes.length, action).toBeGreaterThan(0)
   expect(new Set(actions.map((action) => rig.actions[action].files.join('|'))).size).toBe(
@@ -234,10 +163,16 @@ test('正式小蜗在 Cubism 中局部变形，并在桌面完成待机、轻触
     .poll(() => pet.evaluate(() => document.querySelector('canvas')!.width))
     .toBeGreaterThan(pixels.width)
   await command(panel, { type: 'visibility', visible: false })
-  await delay(200)
-  await startAudit()
-  await delay(300)
-  expect((await readAudit()).count).toBe(0)
+  await expect
+    .poll(
+      async () => {
+        await startAudit()
+        await delay(350)
+        return (await readAudit()).count
+      },
+      { message: '隐藏窗口后停止刷新模型' },
+    )
+    .toBe(0)
   await command(panel, { type: 'visibility', visible: true })
 
   const preset = shortPreset({ customSeconds: [7, 1, 1, 1, 6, 1, 1, 1, 1, 1, 1] })
@@ -327,7 +262,7 @@ test('50%、125%、200% 缩放下的小蜗从花冠到鞋均完整，三种状�
       if (mode === 'hidden') await expect(bar).toHaveCount(0)
       else {
         await expect(bar).toBeVisible()
-        if (mode === 'detailed') await expect(bar).toContainText('本次剩余')
+        if (mode === 'detailed') await expect(bar).toContainText('全程 40:00')
       }
       const layout = await pet.evaluate(() => {
         const model = document.querySelector<HTMLCanvasElement>('.pet-model')!

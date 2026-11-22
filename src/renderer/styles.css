@@ -791,49 +791,173 @@ body[data-view='pet'] #root {
 .pet-halo {
   position: absolute;
   grid-area: 1 / 1;
-  width: 70%;
-  height: 14%;
-  left: 15%;
+  width: 84%;
+  height: 66%;
+  left: 8%;
   bottom: 4%;
-  border: 1px solid #a1abd540;
+  border: 1px solid #9aaede66;
   border-radius: 50%;
-  box-shadow: 0 0 24px #6978a51c;
+  box-shadow:
+    inset 0 0 18px #6178c218,
+    0 0 18px #6178c218;
   pointer-events: none;
+  transition: transform 240ms linear;
+}
+.pet-halo[data-shrinking='true'] {
+  border-color: #b5c6f0b0;
+  box-shadow:
+    inset 0 0 24px #7890d32a,
+    0 0 20px #7890d32a;
 }
 .pet-status {
   position: relative;
   grid-area: 2 / 1;
-  margin: 0 10px 7px;
-  background: #0c1420e8;
-  border: 1px solid #c5aa7338;
-  padding: 9px 11px;
+  min-width: 0;
+  margin: 0 8px 6px;
+  background: #0c1420ed;
+  border: 1px solid #c5aa734d;
+  padding: 8px 10px;
   border-radius: 5px;
+  cursor: pointer;
+  color: #e3d5ba;
+}
+.pet-status:focus-visible {
+  outline: 2px solid #d6b979;
+  outline-offset: -2px;
+}
+.pet-ready {
   display: flex;
   justify-content: space-between;
-  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 11px;
+}
+.pet-ready > span {
+  color: #a9b7ce;
+}
+.session-progress {
+  display: grid;
   gap: 5px;
-  cursor: pointer;
-  font-size: 10px;
-  color: #d4c29f;
-}
-.pet-status small {
-  color: #8b98ae;
-  font-size: 9px;
   width: 100%;
+  min-width: 0;
 }
-.pet-status time {
+.progress-heading,
+.progress-caption {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.progress-heading strong {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.progress-caption {
+  font-size: 10px;
+  line-height: 1.2;
+  color: #b9c6da;
+}
+.progress-caption time {
+  color: #f1e7d3;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.phase-percent {
+  color: #b9c6da;
   font-variant-numeric: tabular-nums;
 }
-.boss-health {
-  width: 100%;
-  height: 3px;
-  background: #7b49352b;
-  margin-top: 3px;
+.paused-label {
+  font-size: 9px;
+  color: #dcc58e;
+  white-space: nowrap;
 }
-.boss-health i {
+.progress-track {
+  height: 3px;
+  width: 100%;
+  overflow: hidden;
+  background: #ffffff16;
+  border-radius: 2px;
+}
+.progress-track i {
   display: block;
   height: 100%;
-  background: #b18f59;
+  background: #aabae0;
+  transition: width 240ms linear;
+}
+.battle .phase-track i {
+  background: #d6b477;
+}
+.shrink .phase-track i {
+  background: #b2bffa;
+}
+.total-track {
+  height: 2px;
+}
+.total-track i {
+  background: #a79775;
+}
+.progress-detail {
+  color: #9eacc2;
+  font-size: 10px;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+.pet-status small[role='alert'] {
+  display: block;
+  margin-top: 5px;
+  font-size: 10px;
+  color: #efbcb3;
+}
+.panel-session-progress {
+  padding: 18px 22px;
+  margin-top: 16px;
+  border: 1px solid #c5aa7333;
+  border-radius: 6px;
+  background: #111b2a;
+}
+.panel-session-progress .session-progress {
+  gap: 9px;
+}
+.panel-session-progress .progress-heading strong {
+  font-size: 16px;
+}
+.panel-session-progress .progress-caption {
+  font-size: 13px;
+}
+.panel-session-progress .progress-detail {
+  font-size: 11px;
+}
+.panel-session-progress .progress-track {
+  height: 5px;
+}
+@media (max-width: 210px) {
+  .pet-status {
+    margin: 0 4px 4px;
+    padding: 6px;
+  }
+  .session-progress {
+    gap: 4px;
+  }
+  .progress-heading,
+  .progress-caption {
+    gap: 3px;
+  }
+  .progress-heading strong {
+    font-size: 10px;
+  }
+  .progress-caption,
+  .progress-detail,
+  .pet-ready {
+    font-size: 9px;
+  }
+  .paused-label {
+    font-size: 8px;
+  }
+  body[data-view='pet'] .pet-stage.victory {
+    font-size: 14px;
+    letter-spacing: 1px;
+  }
 }
 .pet-stage {
   position: absolute;
@@ -1044,4 +1168,11 @@ html[data-view='overlay'] {
 .model-details button {
   padding: 4px 8px;
   font-size: 11px;
+}
+
+.heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
 }

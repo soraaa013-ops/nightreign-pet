@@ -8,17 +8,24 @@ import type { Command } from '../../src/contracts/types'
 
 type View = 'pet' | 'control' | 'overlay'
 
-export const test = base.extend<{ launchApp: () => Promise<ElectronApplication> }>({
+interface LaunchOptions {
+  deviceScaleFactor?: number
+}
+export const test = base.extend<{
+  launchApp: (options?: LaunchOptions) => Promise<ElectronApplication>
+}>({
   launchApp: async ({}, use) => {
     const profile = await mkdtemp(join(tmpdir(), 'nightreign-electron-'))
     const launched: { app: ElectronApplication; child: ChildProcess }[] = []
     try {
-      await use(async () => {
+      await use(async (options = {}) => {
         const executablePath = process.env.NIGHTREIGN_TEST_PACKAGED_EXECUTABLE
         const args = executablePath
           ? [`--user-data-dir=${profile}`]
           : [process.env.NIGHTREIGN_TEST_APP_DIR ?? resolve(__dirname, '../..')]
-        if (executablePath && process.env.NIGHTREIGN_TEST_SOFTWARE_WEBGL === '1')
+        if (options.deviceScaleFactor)
+          args.push('--force-device-scale-factor=' + options.deviceScaleFactor)
+        if (process.env.NIGHTREIGN_TEST_SOFTWARE_WEBGL === '1')
           args.push('--enable-unsafe-swiftshader')
         const env = {
           ...process.env,

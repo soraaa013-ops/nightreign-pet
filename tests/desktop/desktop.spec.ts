@@ -374,7 +374,7 @@ test('从界面保存 11 秒预设，无操作自动成功，结算横幅释放�
   const errors: string[] = []
   pet.on('pageerror', (error) => errors.push(error.message))
   await startFromControl(control, control.getByRole('button', { name: '出击', exact: true }))
-  await expect(pet.getByText('DAY 1', { exact: true })).toBeVisible()
+  await expect(pet.getByRole('progressbar', { name: '整局进度' })).toBeVisible()
   await expect(pet.getByRole('button', { name: '释放绝招' })).toBeVisible()
   await screenshot(pet, info, 'battle')
 
@@ -410,10 +410,10 @@ test('从界面保存 11 秒预设，无操作自动成功，结算横幅释放�
 
   const result = await openControl(app, pet)
   await expect(result.getByText('渡夜成功', { exact: true })).toBeVisible()
-  await expect(result.getByText(/渡过了 00:11/)).toBeVisible()
+  await expect(result.getByText(/本次用时 00:11/)).toBeVisible()
   await Promise.all([
     result.waitForEvent('close'),
-    result.getByRole('button', { name: '收起', exact: true }).click(),
+    result.getByRole('button', { name: '收起结算', exact: true }).click(),
   ])
   expect((await snapshot(pet)).session?.id).toBe(finished.id)
   const again = await openControl(app, pet)
@@ -435,15 +435,21 @@ test('缩圈倒计时有明确含义，圈内探索保持已收紧的光环', as
   const full = await scale()
   expect(full).toBe(1)
   await startFromControl(control, control.getByRole('button', { name: '出击', exact: true }))
-  await expect(pet.getByRole('button', { name: /第一次缩圈.*后/ })).toBeVisible()
-  await expect(pet.getByRole('button', { name: /缩圈结束.*后/ })).toBeVisible()
+  await expect(pet.locator('.pet-status').getByText('第一天探索', { exact: true })).toBeVisible()
+  await expect(
+    pet.locator('.pet-status').getByText('第一天第一次缩圈', { exact: true }),
+  ).toBeVisible()
   await expect.poll(scale).toBeLessThan(full - 0.05)
-  await expect(pet.getByRole('button', { name: /第二次缩圈.*后/ })).toBeVisible()
+  await expect(
+    pet.locator('.pet-status').getByText('第一天圈内探索', { exact: true }),
+  ).toBeVisible()
   const inner = await scale()
   expect(inner).toBeLessThan(full - 0.15)
-  await expect(pet.getByRole('button', { name: /缩圈结束.*后/ })).toBeVisible()
+  await expect(
+    pet.locator('.pet-status').getByText('第一天第二次缩圈', { exact: true }),
+  ).toBeVisible()
   expect(await scale()).toBeLessThanOrEqual(inner + 0.01)
-  await expect(pet.getByRole('button', { name: /第一次缩圈.*后/ })).toBeVisible()
+  await expect(pet.locator('.pet-status').getByText('第二天探索', { exact: true })).toBeVisible()
   expect(await scale()).toBeCloseTo(full)
 })
 

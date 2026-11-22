@@ -15,13 +15,16 @@ const priorities: Record<CharacterAction, number> = {
   idle: 1,
   touch: 2,
   battle: 3,
+  battle2: 3,
+  nightlord: 3,
   ultimate: 4,
   victory: 5,
 }
 let frameworkUsers = 0
 
 interface LoadedAction {
-  motion?: CubismMotion
+  motions: CubismMotion[]
+  next: number
   expression?: CubismMotion
 }
 
@@ -85,6 +88,8 @@ export class CubismRuntime extends CubismUserModel {
   }
 
   setBaseAction(action: BaseAction): void {
+    if ((action === 'battle2' || action === 'nightlord') && !this.actions.has(action))
+      action = 'battle'
     if (this.baseAction === action) return
     this.baseAction = action
     // The completed snapshot can arrive in the same tick as the victory performance.
@@ -95,9 +100,12 @@ export class CubismRuntime extends CubismUserModel {
     const definition = this.actions.get(action)
     if (!definition) return action === 'idle' && Boolean(this.blink || this.breath)
     this.activeAction = action
-    this.expressionTime = definition.expression && !definition.motion ? 1.2 : 0
-    if (definition.motion)
-      this._motionManager.startMotionPriority(definition.motion, false, priorities[action])
+    const motion = definition.motions[definition.next]
+    this.expressionTime = definition.expression && !motion ? 1.2 : 0
+    if (motion) {
+      definition.next = (definition.next + 1) % definition.motions.length
+      this._motionManager.startMotionPriority(motion, false, priorities[action])
+    }
     this._expressionManager.stopAllMotions()
     if (definition.expression) this._expressionManager.startMotion(definition.expression, false)
     return true
@@ -117,7 +125,7 @@ export class CubismRuntime extends CubismUserModel {
       if (!reducedMotion && this.actions.has(this.baseAction)) this.startAction(this.baseAction)
     }
     if (!moving && !reducedMotion) this.blink?.updateParameters(model, elapsed)
-    if (this.breath && !reducedMotion) {
+    if (!moving && this.breath && !reducedMotion) {
       this.breathTime += elapsed
       model.setParameterValueById(this.breath, (Math.sin(this.breathTime * 1.8) + 1) / 2)
     }
@@ -160,7 +168,7 @@ export class CubismRuntime extends CubismUserModel {
     this.closed = true
     this.release()
     for (const action of this.actions.values()) {
-      action.motion?.release()
+      for (const motion of action.motions) motion.release()
       action.expression?.release()
     }
     this.actions.clear()
@@ -246,32 +254,35 @@ export class CubismRuntime extends CubismUserModel {
   ): Promise<void> {
     const definition = this.manifest.actions[action]
     if (!definition) return
-    const result: LoadedAction = {}
+    const result: LoadedAction = { motions: [], next: 0 }
     this.actions.set(action, result)
     if (definition.motion) {
-      const { group, index } = definition.motion
-      if (index >= setting.getMotionCount(group))
-        throw new Error(`模型缺少动作 ${group}/${index}。`)
-      const path = assetUrl(setting.getMotionFileName(group, index), url)
-      const file = await loadBuffer(path, signal)
-      const motion = this.loadMotion(
-        file,
-        file.byteLength,
-        action,
-        undefined,
-        undefined,
-        setting,
-        group,
-        index,
-        true,
-      )
-      if (!motion) throw new Error(`动作文件无效：${path.pathname}。`)
-      motion.setLoop(false)
+      const { group, index, variants } = definition.motion
+      const count = setting.getMotionCount(group)
+      if (index >= count) throw new Error(`模型缺少动作 ${group}/${index}。`)
       const blink = Array.from({ length: setting.getEyeBlinkParameterCount() }, (_, i) =>
         setting.getEyeBlinkParameterId(i),
       )
-      motion.setEffectIds(blink, [])
-      result.motion = motion
+      for (let n = 0; n < (variants ? count : 1); n++) {
+        const slot = (index + n) % count
+        const path = assetUrl(setting.getMotionFileName(group, slot), url)
+        const file = await loadBuffer(path, signal)
+        const motion = this.loadMotion(
+          file,
+          file.byteLength,
+          action,
+          undefined,
+          undefined,
+          setting,
+          group,
+          slot,
+          true,
+        )
+        if (!motion) throw new Error(`动作文件无效：${path.pathname}。`)
+        motion.setLoop(false)
+        motion.setEffectIds(blink, [])
+        result.motions.push(motion)
+      }
     }
     if (definition.expression) {
       const index = Array.from({ length: setting.getExpressionCount() }, (_, i) => i).find(

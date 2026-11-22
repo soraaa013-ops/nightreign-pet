@@ -19,11 +19,11 @@ const nav: { id: Page; label: string; mark: string }[] = [
   { id: 'system', label: '操作与运行', mark: '⌘' },
 ]
 const titles: Record<Page, [string, string]> = {
-  prepare: ['每一节课，都是一次渡夜。', '让夜雨推进时间，让小蜗陪你走到天明。'],
-  rhythm: ['安排你的渡夜', '保留熟悉的缩圈节奏，也为不同的课堂留出余地。'],
-  pet: ['给小蜗一个位置', '调整它在桌面上的大小、位置与交互。'],
-  sound: ['听见夜色渐浓', '用恰好的声音与演出，感知每一次阶段变化。'],
-  system: ['按你的习惯运行', '设定快捷操作，以及暂时离开时的行为。'],
+  prepare: ['出击准备', '选择渡夜时长，出击后自动计时。'],
+  rhythm: ['渡夜节奏', '设置探索、缩圈和战斗时长，保存为预设。'],
+  pet: ['小蜗与桌面', '调整大小、状态条、位置与鼠标操作。'],
+  sound: ['声音与演出', '设置音量、缩圈提示音和视觉效果。'],
+  system: ['操作与运行', '设置快捷键、开机启动和锁屏后的计时行为。'],
 }
 export function App() {
   const { snapshot, send, preferences, error, clearError } = useDesktop()
@@ -73,6 +73,21 @@ export function App() {
       })
     else setPage(next)
   }
+  const closePanel = () => {
+    if (page === 'rhythm' && dirty && selected && draft) {
+      setConfirm({
+        title: '收起前保存修改？',
+        body: '收起面板不影响计时，未保存的预设修改会丢失。',
+        action: '不保存并收起',
+        run: () => window.close(),
+        save: () =>
+          attempt(async () => {
+            await send({ type: 'savePreset', preset: draft })
+            window.close()
+          }),
+      })
+    } else window.close()
+  }
   const openRequestedPage = useEffectEvent(() => {
     const request = document.documentElement.dataset.requestedControlPage
     delete document.documentElement.dataset.requestedControlPage
@@ -120,7 +135,7 @@ export function App() {
             <span>NIGHTREIGN</span>
           </div>
         </div>
-        <div className="nav-group-label">你的渡夜</div>
+        <div className="nav-group-label">渡夜与设置</div>
         <nav aria-label="主导航">
           {nav.map((n) => (
             <button
@@ -139,24 +154,33 @@ export function App() {
           <span>
             {active ? (session?.status === 'paused' ? '渡夜已暂停' : '渡夜进行中') : '等待出击'}
           </span>
-          <small>一节课，一次远征。</small>
+          <small>关闭面板不影响计时</small>
         </div>
       </aside>
       <main className="main-content" inert={!!confirm}>
         <header className="page-heading">
           <div>
             <span className="eyebrow">{page === 'prepare' ? 'EXPEDITION' : 'PREFERENCES'}</span>
-            <h1>{titles[page][0]}</h1>
-            <p>{titles[page][1]}</p>
+            <h1>{page === 'prepare' && active ? '当前渡夜' : titles[page][0]}</h1>
+            <p>
+              {page === 'prepare' && active
+                ? '查看阶段进度，暂停或结束本次渡夜。'
+                : titles[page][1]}
+            </p>
           </div>
-          <button
-            className="icon-button"
-            aria-label={p.muted ? '取消静音' : '静音'}
-            title={p.muted ? '取消静音' : '静音'}
-            onClick={() => pref({ muted: !p.muted })}
-          >
-            {p.muted || p.quietMode ? '♩' : '♫'}
-          </button>
+          <div className="heading-actions">
+            <button className="text-button" onClick={closePanel} title="关闭此面板，不影响渡夜计时">
+              收起面板
+            </button>
+            <button
+              className="icon-button"
+              aria-label={p.muted ? '取消静音' : '静音'}
+              title={p.muted ? '取消静音' : '静音'}
+              onClick={() => pref({ muted: !p.muted })}
+            >
+              {p.muted || p.quietMode ? '♩' : '♫'}
+            </button>
+          </div>
         </header>
         {(error || snapshot.error) && (
           <div role="alert" className="error-banner">

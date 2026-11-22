@@ -25,11 +25,15 @@ private fun manifest(clips: List<Clip>) = buildJsonObject {
     put("version", 1)
     put("status", "available")
     put("model", "revenant.model3.json")
+    put("scale", .94)
+    put("offsetY", -.025)
     putJsonObject("actions") {
-        for (clip in clips) putJsonObject(clip.id) {
+        for (action in Action.entries) putJsonObject(action.id) {
+            require(clips.count { it.group == action.group } > 1)
             putJsonObject("motion") {
-                put("group", clip.group)
+                put("group", action.group)
                 put("index", 0)
+                put("variants", true)
             }
         }
     }

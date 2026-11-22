@@ -10,26 +10,81 @@
 			"Idle": [
 				{
 					"File": "revenant.idle.motion3.json"
+				},
+				{
+					"File": "revenant.idle_tune.motion3.json"
+				},
+				{
+					"File": "revenant.idle_watch.motion3.json"
 				}
 			],
 			"Touch": [
 				{
 					"File": "revenant.touch.motion3.json"
+				},
+				{
+					"File": "revenant.touch_greet.motion3.json"
 				}
 			],
 			"Battle": [
 				{
 					"File": "revenant.battle.motion3.json"
+				},
+				{
+					"File": "revenant.battle_feint.motion3.json"
+				},
+				{
+					"File": "revenant.battle_guard.motion3.json"
+				},
+				{
+					"File": "revenant.battle_accent.motion3.json"
+				}
+			],
+			"NightTwo": [
+				{
+					"File": "revenant.night2_triplet.motion3.json"
+				},
+				{
+					"File": "revenant.night2_riposte.motion3.json"
+				},
+				{
+					"File": "revenant.night2_arc.motion3.json"
+				},
+				{
+					"File": "revenant.night2_offbeat.motion3.json"
+				}
+			],
+			"Nightlord": [
+				{
+					"File": "revenant.lord_charge.motion3.json"
+				},
+				{
+					"File": "revenant.lord_lunge.motion3.json"
+				},
+				{
+					"File": "revenant.lord_recoil.motion3.json"
+				},
+				{
+					"File": "revenant.lord_evade.motion3.json"
+				},
+				{
+					"File": "revenant.lord_crescendo.motion3.json"
 				}
 			],
 			"Ultimate": [
 				{
 					"File": "revenant.ultimate.motion3.json"
+				},
+				{
+					"File": "revenant.ultimate_requiem.motion3.json"
 				}
 			],
 			"Victory": [
 				{
 					"File": "revenant.victory.motion3.json"
+				},
+				{
+					"File": "revenant.victory_cadence.motion3.json"
 				}
 			]
 		}

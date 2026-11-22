@@ -76,7 +76,7 @@ export type Command =
   | { type: 'visibility'; visible: boolean }
   | { type: 'resetPosition' | 'contextMenu' | 'quit' | 'preview' }
   | { type: 'hitTest'; hit: boolean }
-  | { type: 'drag'; dx: number; dy: number }
+  | { type: 'drag'; dx: number; dy: number; finished?: boolean }
 export interface DesktopApi {
   getSnapshot(): Promise<AppSnapshot>
   command(command: Command): Promise<AppSnapshot>

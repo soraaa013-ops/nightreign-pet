@@ -1,26 +1,48 @@
-# 小蜗的 Live2D 绑定与动画
+# 小蜗的 Live2D 绑定与动作
 
-画布为 1000 × 1120 像素。8 个 ArtMesh 共用一张 2048 × 1024 透明图集，共有 5,970 个顶点、11,030 个三角形。图集保留分层原画的分辨率。[画稿、坐标与制作说明](../../art/revenant/README.md)
+小蜗用 9 个 ArtMesh、11 个参数和 22 段动作表现巡望、拨琴和召唤。画布为 1000 × 1120 像素，模型有 5,789 个顶点、10,590 个三角形，共用一张 2048 × 1024 透明图集。[分层原画与坐标](../../art/revenant/README.md)
+
+## 动作
+
+每组内按下表顺序轮换。动作时长以秒计，第一拍与末拍都回到可接续的姿态。头部和发尾的关键帧略晚于肩和重心。
+
+| 桌宠动作 | Cubism 组 | 变体与时长 |
+| --- | --- | --- |
+| 待机 | `Idle` | 侧耳听音 5.80、低弦试音 4.85、移步巡望 6.15 |
+| 轻触 | `Touch` | 回眸 1.65、举琴致意 2.12 |
+| 第一夜 | `Battle` | 双拨 2.85、试探侧步 2.55、护琴转身 2.95、低音重拍 2.69 |
+| 第二夜 | `NightTwo` | 侧步三连 2.82、屈膝反奏 2.99、转身扬琴 3.09、切分扫弦 2.84 |
+| 夜王 | `Nightlord` | 蓄势召灵 3.60、进步连拨 3.23、落地反冲 3.55、闪身回奏 3.12、渐强终句 3.84 |
+| 绝招 | `Ultimate` | 唤灵强奏 3.85、安魂曲 4.07 |
+| 胜利 | `Victory` | 举琴鞠躬 3.60、终止式 4.04 |
+
+夜王战的三段重奏和两条绝招有独立的召唤灵轨道。灵体由下向上显现，停留后回落。普通待机、轻触和前两夜将它的透明度保持为零。
 
 ## 修改角色
 
-- 修改银发、花冠、礼服或竖琴时，编辑 `art/revenant/parts/` 中对应的透明 PNG。画布位置从 `art/revenant/layout.json` 读取，原点在左上。
-- 调整姿态时，修改 `Rig.kt` 的颈部、肩、腕、竖琴支点和权重。`Artwork.kt` 生成图集及网格，在眼周增加采样，保留眼睑弧线。
-- 调整节奏时，修改 `Motions.kt` 的贝塞尔曲线。动作时间以秒计。待机循环为 6.40 秒，触碰为 1.45 秒，战斗为 2.80 秒，绝招为 2.05 秒，胜利为 3.15 秒。
-- 在模型编辑器里调整网格可使用 `editor/revenant.cmo3`。在动画编辑器里调整动作可使用同目录的 `revenant.can3`，其中的五个场景共同引用该模型。
+`Artwork.kt` 从 `art/revenant/layout.json` 读取部件的透明 PNG、层序和舞台位置，在眼周加密网格。可在 `landmarks` 中调整颈、髋、脚、两肩、腕、琴枕、琴弦与双眼。眼项格式为 `[中心 x, 中心 y, 完整宽度, 完整高度, 顺时针角度]`。可选图层使用 `role` 复用绑定，也可独立指定 `LeftFoot`、`RightFoot`、`Cape`、`FrontHair` 或 `Spirit`。移除召唤图层会同时省略它的参数和曲线。
 
-| 参数 | 范围 | 对应部位 |
+`Rig.kt` 负责各部位的关键形与附加变形。`Motions.kt` 定义关键姿态、节拍与过渡，参数范围见表。
+
+| 参数 | 范围 | 对应演出 |
 | --- | --- | --- |
-| `ParamBreath` | 0 至 1 | 胸廓轻微扩张，头、手臂和琴一起起伏，鞋底固定 |
-| `ParamHeadTilt` | −1 至 1 | 头部绕颈侧倾，后发根部和眼睑跟随 |
-| `ParamHairSway` | −1 至 1 | 后发、披肩与裙摆沿不同幅度摆动 |
-| `ParamEyeOpen` | 0 至 1 | 两眼同步眨动，0 时眼周网格收拢，覆盖闭眼原画 |
-| `ParamHarp` | −1 至 1 | 持琴手、琴身和演奏手同步转动 |
-| `ParamPluck` | −1 至 1 | 拨弦手指、前臂和弦分开响应 |
+| `ParamBreath` | 0 至 1 | 胸部轻微扩张，头、琴和手随呼吸起伏 |
+| `ParamHeadTilt` | −1 至 1 | 头绕颈侧倾，后发根部与双眼睑跟随 |
+| `ParamHairSway` | −1 至 1 | 后发、披肩和裙摆分幅摆动 |
+| `ParamEyeOpen` | 0 至 1 | 双眼网格收拢，0 时使用闭眼画稿 |
+| `ParamHarp` | −1 至 1 | 调整持琴手肘、乐器与演奏手的位置 |
+| `ParamPluck` | −1 至 1 | 肩、腕和指尖分段转动，琴弦局部振动 |
+| `ParamBodyLean` | −1 至 1 | 身躯以髋部为轴移重心，脚底保持支撑 |
+| `ParamStride` | −1 至 1 | 左右脚交替外踏、抬起，前脚与支撑脚使用不同权重 |
+| `ParamBodyLevel` | −1 至 1 | 屈膝时上身下沉，跃起时收脚 |
+| `ParamArmLift` | −1 至 1 | 前臂与持琴手依各自肩关节抬起 |
+| `ParamSpirit` | 0 至 1 | 身后的召唤灵浮现、升起与退场 |
 
-## 重建
+可编辑模型是 `editor/revenant.cmo3`，同目录的 `revenant.can3` 包含全部 22 个动画场景。
 
-在项目根目录执行。已验证的环境为 Linux x64、Python 3.12、JDK 17、Kotlin 2.4.10 和 PSD2Live 3.8.4。将两个工具发行包分别解压后，把下面命令中的路径改为实际位置。桌宠运行时直接读取导出的模型和动作。[PSD2Live 3.8.4 发布包及 SHA-256](https://github.com/tsunehimatoi/psd2live/releases/tag/v3.8.4) · [Kotlin 2.4.10 编译器](https://github.com/JetBrains/kotlin/releases/tag/v2.4.10)
+## 重建与校验
+
+已验证的生成环境为 Linux x64、Python 3.12、JDK 17、Kotlin 2.4.10 和 PSD2Live 3.8.4。解压两个工具发行包后，在项目根目录执行。[PSD2Live 3.8.4](https://github.com/tsunehimatoi/psd2live/releases/tag/v3.8.4) · [Kotlin 2.4.10](https://github.com/JetBrains/kotlin/releases/tag/v2.4.10)
 
 ```bash
 python3 scripts/character-rig/build.py \
@@ -28,8 +50,6 @@ python3 scripts/character-rig/build.py \
   --kotlinc /path/to/kotlinc/bin/kotlinc
 ```
 
-`build.py` 使用 PSD2Live 提供的编译接口，生成 `resources/character/revenant/` 内的运行文件和本目录 `editor/` 内的可编辑工程。可用 `--runtime-out` 和 `--editor-out` 指定独立目录进行比对。重新导出会覆盖目标目录内的同名文件，在编辑器里手工精修后请先另存。
+运行文件写入 `resources/character/revenant/`，编辑工程写入本目录的 `editor/`。可用 `--runtime-out` 和 `--editor-out` 指定独立输出目录。手工精修的编辑工程需要另存，以免重建时覆盖。
 
-## 验证
-
-每次重建都会回读 `.cmo3` 的参数、网格、关键形及嵌入图集，并从 `.can3` 回读五个场景和相对模型路径。分发版本另用项目内官方 Cubism Core 检查了 MOC3 一致性，再用实际 WebGL 渲染器检查整身、闭眼和五种动作。独立重建的 10 个运行文件已逐一比对 SHA-256，均与分发文件一致。可编辑工程会生成新的 GUID，重建后按网格、参数和场景比对。已用 PSD2Live 回读两版可编辑工程，官方 Cubism Editor 图形界面仍待实机复核。[桌面角色测试](../../tests/desktop/character.spec.ts)
+构建会回读编辑工程的网格、各部位的参数键、嵌入图集像素、动作场景和模型引用。实际桌宠通过官方 Cubism Core 和 WebGL 2 渲染模型，桌面测试覆盖变体及局部动作。官方 Cubism Editor 图形界面仍待实机复核。[角色测试](../../tests/desktop/character.spec.ts) · [动作测试](../../tests/desktop/motions.spec.ts)

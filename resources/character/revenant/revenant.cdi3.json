@@ -30,6 +30,31 @@
 			"Id": "ParamPluck",
 			"GroupId": "",
 			"Name": "拨弦 / Pluck"
+		},
+		{
+			"Id": "ParamBodyLean",
+			"GroupId": "",
+			"Name": "移重心 / Shift weight"
+		},
+		{
+			"Id": "ParamStride",
+			"GroupId": "",
+			"Name": "交替侧步 / Sidestep"
+		},
+		{
+			"Id": "ParamBodyLevel",
+			"GroupId": "",
+			"Name": "屈膝与跃起 / Crouch and spring"
+		},
+		{
+			"Id": "ParamArmLift",
+			"GroupId": "",
+			"Name": "抬肘与扬琴 / Conduct"
+		},
+		{
+			"Id": "ParamSpirit",
+			"GroupId": "",
+			"Name": "召唤灵 / Spirit"
 		}
 	],
 	"ParameterGroups": [],
@@ -40,6 +65,10 @@
 		}
 	],
 	"Drawables": [
+		{
+			"Id": "ArtSpirit",
+			"Name": "Spirit"
+		},
 		{
 			"Id": "ArtBackHair",
 			"Name": "BackHair"

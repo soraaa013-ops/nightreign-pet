@@ -1,20 +1,22 @@
 # 小蜗角色资源
 
-小蜗是《艾尔登法环：黑夜君临》的复仇者（Revenant／復讐者）。0.2.0 随包提供项目自制同人 Live2D，独立模型包附可编辑的 `.cmo3` 与 `.can3`。蓝白花冠、银蓝长发、球形手关节和浅色里拉琴用于保持她在桌宠尺寸下的辨识度。[造型参考](character/character-references.md) · [制作原稿](../art/revenant/) · [桌宠与独立模型包](BUILD_ARTIFACTS.md)
+小蜗是《艾尔登法环：黑夜君临》的复仇者（Revenant／復讐者）。0.3.0 随包提供项目自制同人 Live2D，独立模型包附可编辑的 `.cmo3` 与 `.can3`。蓝白花冠、银蓝长发、球形手关节和浅色里拉琴用于保持她在桌宠尺寸下的辨识度。[造型参考](character/character-references.md) · [制作原稿](../art/revenant/) · [桌宠与独立模型包](BUILD_ARTIFACTS.md)
 
 ## 当前模型
 
-分层同人画稿由 ImageGen 生成。项目分别为后发、裙身、托琴手、里拉琴、拨弦手、头部、左眼睑和右眼睑编写了网格和绑定。`ParamBreath`、`ParamHeadTilt`、`ParamHairSway`、`ParamEyeOpen`、`ParamHarp`、`ParamPluck` 驱动 8 个 ArtMesh，共 11,030 个三角面，使用一张 2048 × 1024 贴图。[画稿与组装方式](../art/revenant/README.md) · [绑定与动作源文件](../scripts/character-rig/)
+分层同人画稿由 ImageGen 生成，再用网格绑定。灵体独立于头部、双眼睑、后发、裙身、手臂和琴，平时隐去。战斗时身体重心、侧步、屈膝与抬臂共同改变轮廓，琴和双手随身体运动。[分层画稿](../art/revenant/) · [动作关键帧](../scripts/character-rig/Motions.kt)
 
-| 游戏状态 | 角色动作 | 动作时长 |
-| --- | --- | --- |
-| 待机或探索 | 呼吸、发梢轻摆，间歇眨眼 | 6.4 秒，循环 |
-| 轻点角色 | 侧头、眨眼、手指轻拨琴弦 | 1.45 秒 |
-| 第一夜、第二夜或夜王战 | 托琴手随节奏摆动，拨弦手连续弹奏 | 2.8 秒，战斗期间重复 |
-| 释放绝招 | 蓄势后大幅扫弦，发尾随动作摆开 | 2.05 秒，随后恢复战斗动作 |
-| 成功结算 | 闭眼侧首，抚琴收势 | 3.15 秒，随后回到待机 |
+| 场景 | 动作数 | 表现 |
+| --- | ---: | --- |
+| 探索、待机 | 3 | 呼吸、转头和重心变化 |
+| 轻触 | 2 | 点按响应 |
+| 第一夜 | 4 | 单次拨击、回撤与防守 |
+| 第二夜 | 4 | 连续拨击和跨步 |
+| 夜王战 | 5 | 重击、大幅侧身，部分招式唤出灵体 |
+| 绝招 | 2 | 蓄势、召唤灵体、收势 |
+| 胜利 | 2 | 结算时收琴行礼 |
 
-五段动作均取自真实桌宠画布。默认大小的截图保留了应用自己的状态条和光环。[动作实录](character/revenant-live2d.webp) · [桌宠窗口](character/revenant-desktop.png)
+同一场战斗按顺序换招，轻触和绝招结束后回到当前阶段。[桌宠动作实录](character/revenant-live2d.webp)
 
 ## 查到的线索
 
@@ -38,7 +40,7 @@ FromSoftware 官方 FAQ 允许一定范围内个人非营利展示同人创作�
 | Cubism Core | 同版官方 `CubismSdkForWeb-5-r.5.zip`，SHA-256 `67064a7fb1812cf502f5c4a03bfe12cc638c75a621bb4acf06bb28763df06ba0`。[官方 SDK 下载](https://www.live2d.com/en/sdk/download/web/) | `resources/character/cubism-core/live2dcubismcore.min.js`，SHA-256 `8741f739779b5d5210872bd3d7d99f0f1e56e6c87409e7d26d6bb4b80aa1ef47`。官方包将该文件列为有条件可再分发，随附原许可与清单。[Live2D Proprietary Software License](https://www.live2d.com/eula/live2d-proprietary-software-license-agreement_en.html) |
 | WebGL 着色器 | 同版官方 SDK 的 `Framework/Shaders/WebGL`。[Framework 源码](https://github.com/Live2D/CubismWebFramework/tree/5-r.5/Shaders/WebGL) | `resources/character/cubism-shaders/`，随附 Framework 原许可 |
 | 复仇者模型 | 项目自制并从 PSD2Live 导出。`resources/character/revenant/manifest.json` 状态为 `available`。 | [模型文件与署名](../resources/character/revenant/) · [制作工具来源](character/character-references.md) |
-| 准备界面与回退图 | 准备界面显示与模型同源的 WebP。模型读取失败时，桌宠提供概念稿和重试按钮。 | [图片及生成记录](../resources/character/preview/README.md) |
+| 准备界面与回退图 | 准备界面显示与模型同源的 WebP。模型读取失败时，桌宠提供同源立绘和重试按钮。 | [图片及生成记录](../resources/character/preview/README.md) |
 
 渲染器从受限的 `app://assets/character/` 本地路径加载 Core、着色器和模型。正式发行前需按实际发行主体和范围核对 Cubism 发布许可要求。[Cubism SDK 发布许可](https://www.live2d.com/en/sdk/license/)
 
@@ -59,7 +61,7 @@ FromSoftware 官方 FAQ 允许一定范围内个人非营利展示同人创作�
 }
 ```
 
-上述动作组、表情和命中区是格式示例，实际名称取自模型文件。`actions` 支持 `idle`、`touch`、`battle`、`ultimate`、`victory`，每一项可指定动作、表情或两者。模型若提供眨眼参数组或标准的 `ParamBreath`，可在未提供待机动作时维持轻微待机。可选的 `hitAreas` 先限定命中区。点按随后根据当前变形网格和贴图透明度判定，琴框、发丝与裙摆之间的透明空隙可以点透。`scale`、`offsetX`、`offsetY` 可调整模型大小和位置。
+上述动作组、表情和命中区是格式示例，实际名称取自模型文件。`actions` 支持 `idle`、`touch`、`battle`、`battle2`、`nightlord`、`ultimate`、`victory`，每一项可指定动作、表情或两者。设置 `motion.variants: true` 会从给定索引开始轮换该组内的动作。模型若提供眨眼参数组或标准的 `ParamBreath`，可在未提供待机动作时维持轻微待机。可选的 `hitAreas` 先限定命中区。点按随后根据当前变形网格和贴图透明度判定，琴框、发丝与裙摆之间的透明空隙可以点透。`scale`、`offsetX`、`offsetY` 可调整模型大小和位置。
 
 ## SDK 初次接入的验证记录
 

@@ -12,7 +12,7 @@ export async function applyDesktopSettings(
 ) {
   const old = settings.preferences,
     next = settings.next(command.patch, command.expectedRevision)
-  const oldBounds = windows.pet?.getBounds()
+  const oldBounds = windows.getPetBounds()
   const undo: (() => void)[] = []
   try {
     if (next.autoStart !== old.autoStart) {
@@ -27,7 +27,7 @@ export async function applyDesktopSettings(
     }
     undo.push(() => {
       windows.apply(next, old)
-      if (oldBounds && next.scale !== old.scale) windows.pet?.setBounds(oldBounds)
+      if (oldBounds && next.scale !== old.scale) windows.placePet(oldBounds)
     })
     windows.apply(old, next)
     await settings.savePreferences(next)

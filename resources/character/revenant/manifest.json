@@ -2,35 +2,56 @@
   "version": 1,
   "status": "available",
   "model": "revenant.model3.json",
+  "scale": 0.94,
+  "offsetY": -0.025,
   "actions": {
     "idle": {
       "motion": {
         "group": "Idle",
-        "index": 0
+        "index": 0,
+        "variants": true
       }
     },
     "touch": {
       "motion": {
         "group": "Touch",
-        "index": 0
+        "index": 0,
+        "variants": true
       }
     },
     "battle": {
       "motion": {
         "group": "Battle",
-        "index": 0
+        "index": 0,
+        "variants": true
+      }
+    },
+    "battle2": {
+      "motion": {
+        "group": "NightTwo",
+        "index": 0,
+        "variants": true
+      }
+    },
+    "nightlord": {
+      "motion": {
+        "group": "Nightlord",
+        "index": 0,
+        "variants": true
       }
     },
     "ultimate": {
       "motion": {
         "group": "Ultimate",
-        "index": 0
+        "index": 0,
+        "variants": true
       }
     },
     "victory": {
       "motion": {
         "group": "Victory",
-        "index": 0
+        "index": 0,
+        "variants": true
       }
     }
   }

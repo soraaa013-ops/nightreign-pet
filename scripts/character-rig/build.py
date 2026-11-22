@@ -54,6 +54,10 @@ def main():
                         "ExportKt", PROJECT / "art/revenant/layout.json", stage / "runtime", stage / "editor"], check=True)
         publish(stage / "editor", args.editor_out)
         publish(stage / "runtime", args.runtime_out)
+        # The model owns its named motion files. Removing a clip from Motions.kt removes its old export.
+        for motion in args.runtime_out.glob("revenant.*.motion3.json"):
+            if not (stage / "runtime" / motion.name).exists():
+                motion.unlink()
 
 
 if __name__ == "__main__":

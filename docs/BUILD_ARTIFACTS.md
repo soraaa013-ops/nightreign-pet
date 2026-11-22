@@ -1,6 +1,6 @@
 # 小蜗渡夜构建产物
 
-0.2.0 自带小蜗的模型、贴图和五组动作。下载与设备相符的文件，首次启动时阅读随包 Cubism Core 的使用条款。[GitHub Release](https://github.com/soraaa013-ops/nightreign-pet/releases/tag/v0.2.0)
+0.3.0 自带小蜗的模型、灵体贴图和七组共 22 段动作。下载与设备相符的文件，首次启动时阅读随包 Cubism Core 的使用条款。[GitHub Release](https://github.com/soraaa013-ops/nightreign-pet/releases/tag/v0.3.0)
 
 | 设备或用途 | 下载后如何使用 |
 | --- | --- |

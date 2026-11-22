@@ -9,10 +9,11 @@ async function assemble() {
   const composition = JSON.parse(await fs.readFile(path.join(root, 'composition.json'), 'utf8'))
   const sheet = await fs.readFile(path.join(root, 'painted-parts.png'))
   const blink = await fs.readFile(path.join(root, 'painted-blink.png'))
+  const spirit = await fs.readFile(path.join(root, 'painted-spirit.png'))
   const window = new BrowserWindow({ show: false, webPreferences: { sandbox: true } })
   await window.loadURL('about:blank')
   const result = await window.webContents.executeJavaScript(
-    `(${rasterize.toString()})(${JSON.stringify(composition)}, ${JSON.stringify(sheet.toString('base64'))}, ${JSON.stringify(blink.toString('base64'))})`,
+    `(${rasterize.toString()})(${JSON.stringify(composition)}, ${JSON.stringify(sheet.toString('base64'))}, ${JSON.stringify(blink.toString('base64'))}, ${JSON.stringify(spirit.toString('base64'))})`,
   )
   await fs.mkdir(path.join(root, 'parts'), { recursive: true })
   for (const layer of result.images) {
@@ -26,7 +27,12 @@ async function assemble() {
   window.destroy()
 }
 
-async function rasterize({ canvas: dimensions, layers, eyelids }, input, blink) {
+async function rasterize(
+  { canvas: dimensions, layers, eyelids, spirit, landmarks },
+  input,
+  blink,
+  spiritImage,
+) {
   async function decode(base64) {
     const image = new Image()
     image.src = 'data:image/png;base64,' + base64
@@ -43,7 +49,22 @@ async function rasterize({ canvas: dimensions, layers, eyelids }, input, blink) 
   const combined = surface(...dimensions)
   const imageData = (canvas) => canvas.toDataURL('image/png').split(',')[1]
   const images = []
-  const layout = { canvas: dimensions, layers: [] }
+  const layout = { canvas: dimensions, landmarks, layers: [] }
+  const [sx, sy, sw, sh] = spirit.place
+  const ghost = surface(sw, sh)
+  const ghostContext = ghost.getContext('2d')
+  ghostContext.imageSmoothingQuality = 'high'
+  ghostContext.drawImage(await decode(spiritImage), 0, 0, sw, sh)
+  images.push({ file: 'parts/Spirit.png', data: imageData(ghost) })
+  layout.layers.push({
+    id: 'Spirit',
+    file: 'parts/Spirit.png',
+    x: sx,
+    y: sy,
+    width: sw,
+    height: sh,
+    z: 0,
+  })
   for (const [
     z,
     {
@@ -65,7 +86,7 @@ async function rasterize({ canvas: dimensions, layers, eyelids }, input, blink) 
     combined.getContext('2d').drawImage(cutout, x, y)
     const file = `parts/${id}.png`
     images.push({ file, data: imageData(cutout) })
-    layout.layers.push({ id, file, x, y, width, height, z })
+    layout.layers.push({ id, file, x, y, width, height, z: z + 1 })
   }
   images.push({ file: 'neutral.png', data: imageData(combined) })
   const thumbnail = surface(600, 672)

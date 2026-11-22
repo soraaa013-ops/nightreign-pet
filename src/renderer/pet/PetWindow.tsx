@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { AppSnapshot } from '../../contracts/types'
 import { Live2DAdapter, type Live2DStatus } from '../live2d'
-import { time, useDesktop } from '../useDesktop'
+import { useDesktop } from '../useDesktop'
+import { SessionProgress } from '../components/SessionProgress'
 import { AudioDirector } from './AudioDirector'
 import { NightRain } from './NightRain'
 import { haloScale, imageHit, type AlphaMask } from './presentation'
@@ -29,6 +30,7 @@ export function PetWindow() {
   const bannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const previousHit = useRef<boolean | null>(null)
   const drag = useRef<{
+    pointerId: number
     x: number
     y: number
     startX: number
@@ -61,9 +63,14 @@ export function PetWindow() {
         if (s.preferences.victoryPosition === 'center') return
       }
       if (event.kind === 'phase') {
+        setPreviewing(false)
+        setBanner(null)
+        if (bannerTimer.current) clearTimeout(bannerTimer.current)
         const phase = s.session?.timeline.phases.find((p) => p.id === event.phaseId)
         if (phase?.kind === 'shrink' && !s.preferences.shrinkAlerts) return
         audio.current?.cue('phase')
+        // Stage changes remain in the HUD; only victory uses an overlay.
+        return
       }
       setPreviewing(event.kind === 'preview')
       if (event.kind === 'preview') {
@@ -71,10 +78,7 @@ export function PetWindow() {
         audio.current?.cue('phase')
       }
       setBanner({
-        text:
-          event.kind === 'victory'
-            ? 'NIGHTLORD SLAIN'
-            : (event.label ?? (event.kind === 'preview' ? '夜雨将至' : '夜色渐浓')),
+        text: event.kind === 'victory' ? 'NIGHTLORD SLAIN' : (event.label ?? '缩圈效果预览'),
         victory: event.kind === 'victory',
       })
       if (bannerTimer.current) clearTimeout(bannerTimer.current)
@@ -109,8 +113,12 @@ export function PetWindow() {
     (p) => session.elapsedMs >= p.startMs && session.elapsedMs < p.endMs,
   )
   useEffect(() => {
-    model.current?.setBaseAction(phase?.kind === 'battle' ? 'battle' : 'idle')
-  }, [phase?.kind])
+    const stages = { night1: 'battle', night2: 'battle2', nightlord: 'nightlord' } as const
+    const id = phase?.id
+    model.current?.setBaseAction(
+      id === 'night1' || id === 'night2' || id === 'nightlord' ? stages[id] : 'idle',
+    )
+  }, [phase?.id])
   const open = () => send({ type: 'openControl', page: 'prepare' }).catch(() => {})
   const previewHit = (x: number, y: number) =>
     modelStatus.state !== 'ready' && previewImage.current
@@ -127,6 +135,23 @@ export function PetWindow() {
       void window.nightreign.command({ type: 'hitTest', hit: next }).catch(() => {})
     }
   }
+  const finishDrag = (screenX?: number, screenY?: number) => {
+    const current = drag.current
+    drag.current = null
+    if (!current) return null
+    if (
+      screenX !== undefined &&
+      screenY !== undefined &&
+      Math.hypot(screenX - current.startX, screenY - current.startY) > 5
+    )
+      current.moved = true
+    if (current.moved) {
+      const dx = (screenX ?? current.x) - current.x,
+        dy = (screenY ?? current.y) - current.y
+      void window.nightreign.command({ type: 'drag', dx, dy, finished: true }).catch(() => {})
+    }
+    return current
+  }
   const onTouch = () => {
     if (session?.status === 'paused') return
     if (session?.status === 'running' && phase?.kind === 'battle') {
@@ -137,16 +162,6 @@ export function PetWindow() {
     model.current?.play('touch')
     if (!session || session.status === 'completed') void open()
   }
-  const nextPhase =
-    session && phase
-      ? session.timeline.phases[session.timeline.phases.findIndex((x) => x.id === phase.id) + 1]
-      : undefined
-  const countdownLabel =
-    phase?.kind === 'shrink'
-      ? '缩圈结束'
-      : phase?.kind === 'explore'
-        ? (nextPhase?.label.replace(/^第[一二]天/, '') ?? phase.label)
-        : phase?.label
   const strength =
     snapshot?.preferences.quietMode || snapshot?.preferences.intensity === 'low'
       ? 0
@@ -162,6 +177,7 @@ export function PetWindow() {
   return (
     <div
       className="pet-scene"
+      onDragStart={(event) => event.preventDefault()}
       onContextMenu={(e) => {
         e.preventDefault()
         send({ type: 'contextMenu' }).catch(() => {})
@@ -169,27 +185,32 @@ export function PetWindow() {
       onPointerMove={(e) => {
         const d = drag.current
         if (!d) hover(e.clientX, e.clientY, e.target)
-        if (d) {
+        if (d && e.pointerId === d.pointerId) {
           if (Math.hypot(e.screenX - d.startX, e.screenY - d.startY) > 5) d.moved = true
           if (d.moved && !snapshot?.preferences.positionLocked) {
             const dx = e.screenX - d.x,
               dy = e.screenY - d.y
             d.x = e.screenX
             d.y = e.screenY
-            if (dx || dy) window.nightreign.command({ type: 'drag', dx, dy }).catch(() => {})
+            if (dx || dy)
+              window.nightreign.command({ type: 'drag', dx, dy, finished: false }).catch(() => {})
           }
         }
       }}
       onPointerDown={(e) => {
         if (
           e.button !== 0 ||
+          !e.isPrimary ||
+          drag.current ||
           (e.target as HTMLElement).closest('[data-pet-control]') ||
           (!model.current?.hitTest(e.clientX, e.clientY) && !previewHit(e.clientX, e.clientY))
         )
           return
+        e.preventDefault()
         previousHit.current = true
         void window.nightreign.command({ type: 'hitTest', hit: true }).catch(() => {})
         drag.current = {
+          pointerId: e.pointerId,
           x: e.screenX,
           y: e.screenY,
           startX: e.screenX,
@@ -199,15 +220,19 @@ export function PetWindow() {
         e.currentTarget.setPointerCapture(e.pointerId)
       }}
       onPointerUp={(e) => {
-        const d = drag.current
-        drag.current = null
+        if (drag.current && drag.current.pointerId !== e.pointerId) return
+        const d = finishDrag(e.screenX, e.screenY)
         if (e.currentTarget.hasPointerCapture(e.pointerId))
           e.currentTarget.releasePointerCapture(e.pointerId)
         hover(e.clientX, e.clientY, e.target)
         if (d && !d.moved) onTouch()
       }}
-      onPointerCancel={() => {
-        drag.current = null
+      onLostPointerCapture={(e) => {
+        if (drag.current?.pointerId === e.pointerId) finishDrag()
+      }}
+      onPointerCancel={(e) => {
+        if (drag.current?.pointerId !== e.pointerId) return
+        finishDrag()
         previousHit.current = null
       }}
       onPointerLeave={() => {
@@ -220,7 +245,8 @@ export function PetWindow() {
       <div
         className="pet-halo"
         aria-hidden="true"
-        style={{ transform: `scaleX(${haloScale(phase, session?.elapsedMs ?? 0)})` }}
+        data-shrinking={phase?.kind === 'shrink' ? 'true' : 'false'}
+        style={{ transform: `scale(${haloScale(phase, session?.elapsedMs ?? 0)})` }}
       />
       <canvas ref={canvas} className="pet-model" aria-label="复仇者小蜗 Live2D" />
       <NightRain
@@ -231,7 +257,7 @@ export function PetWindow() {
       {modelStatus.state !== 'ready' && (
         <div className="pet-concept">
           <img
-            src="app://assets/character/preview/revenant-concept.png"
+            src="app://assets/character/preview/revenant-portrait.webp"
             alt="复仇者小蜗同人立绘预览"
             draggable={false}
             data-pet-character
@@ -310,34 +336,24 @@ export function PetWindow() {
           data-pet-control
           role="button"
           tabIndex={0}
+          title="打开渡夜面板"
           onKeyDown={(e) => {
-            if (e.key === 'Enter') void open()
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              void open()
+            }
           }}
           onClick={open}
         >
-          <span>
-            {session?.status === 'paused'
-              ? '已暂停'
-              : session?.status === 'completed'
-                ? '渡夜成功'
-                : (countdownLabel ?? '等待出击')}
-          </span>
-          <time>
-            {session && phase
-              ? time(phase.endMs - session.elapsedMs) + (phase.kind !== 'battle' ? ' 后' : '')
-              : '◈'}
-          </time>
-          {phase?.kind === 'battle' && session && (
-            <div className="boss-health">
-              <i
-                style={{
-                  width: `${Math.max(0, (phase.endMs - session.elapsedMs) / (phase.endMs - phase.startMs)) * 100}%`,
-                }}
-              />
-            </div>
-          )}
-          {snapshot?.preferences.statusBar === 'detailed' && session && (
-            <small>本次剩余 {time(session.timeline.durationMs - session.elapsedMs)}</small>
+          {session ? (
+            <SessionProgress
+              session={session}
+              detailed={snapshot?.preferences.statusBar === 'detailed'}
+            />
+          ) : (
+            <span className="pet-ready">
+              等待出击 <span>打开面板 →</span>
+            </span>
           )}
           {error && <small role="alert">{error}</small>}
         </div>

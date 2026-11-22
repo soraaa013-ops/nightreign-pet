@@ -31,7 +31,7 @@ interface CubismCore {
 }
 
 interface Mapping {
-  motion?: { group: string; index: number }
+  motion?: { group: string; index: number; variants?: boolean }
   expression?: string
 }
 
@@ -104,21 +104,25 @@ export async function inspectCharacterRig() {
       const files: string[] = []
       if (mapping.motion) {
         const { group, index } = mapping.motion
-        const path = refs.Motions?.[group]?.[index]?.File
-        if (!path) throw new Error(`缺少 ${action} 的 motion3 文件。`)
-        files.push(path)
-        const motion = await (await get(new URL(path, modelUrl))).json()
-        for (const curve of motion.Curves) {
-          if (curve.Target !== 'Parameter') continue
-          const seg: number[] = curve.Segments
-          const keys = [seg[1]]
-          for (let i = 2; i < seg.length;) {
-            // Bezier segments include two handles before the end point.
-            const width = seg[i] === 1 ? 7 : 3
-            keys.push(seg[i + width - 1])
-            i += width
+        const slots = mapping.motion.variants
+          ? refs.Motions?.[group]
+          : refs.Motions?.[group]?.slice(index, index + 1)
+        if (!slots?.length) throw new Error(`缺少 ${action} 的 motion3 文件。`)
+        for (const { File: path } of slots) {
+          files.push(path)
+          const motion = await (await get(new URL(path, modelUrl))).json()
+          for (const curve of motion.Curves) {
+            if (curve.Target !== 'Parameter') continue
+            const seg: number[] = curve.Segments
+            const keys = [seg[1]]
+            for (let i = 2; i < seg.length;) {
+              // Bezier segments include two handles before the end point.
+              const width = seg[i] === 1 ? 7 : 3
+              keys.push(seg[i + width - 1])
+              i += width
+            }
+            values.set(curve.Id, [...(values.get(curve.Id) ?? []), ...keys])
           }
-          values.set(curve.Id, keys)
         }
       }
       if (mapping.expression) {

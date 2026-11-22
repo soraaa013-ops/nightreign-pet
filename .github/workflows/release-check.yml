@@ -51,6 +51,11 @@ jobs:
         run: npm test
       - name: Build application
         run: npm run build
+      - name: Test Windows dragging and session HUD
+        if: runner.os == 'Windows'
+        env:
+          NIGHTREIGN_TEST_SOFTWARE_WEBGL: '1'
+        run: npx playwright test pet-drag.spec.ts hud.spec.ts
       - name: Build Windows portable archive
         if: runner.os == 'Windows'
         run: npx electron-builder --win zip --x64 --publish never
@@ -113,6 +118,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: native-smoke-${{ matrix.platform }}-${{ github.sha }}
-          path: test-results/packaged-smoke*
+          path: |
+            test-results/packaged-smoke*
+            test-results/desktop/**
           if-no-files-found: warn
           retention-days: 7

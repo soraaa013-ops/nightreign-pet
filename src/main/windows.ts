@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import type { AppSnapshot, Preferences, PresentationEvent } from '../contracts/types'
 import { fields, integer, record, requireValue } from '../core/validation'
+import { clampBounds, dragBounds, petSize } from './window-geometry'
 
 export type View = 'pet' | 'control' | 'overlay'
 export type Page = 'prepare' | 'settings' | 'result'
@@ -35,16 +36,6 @@ export function validateWindowState(value: unknown): WindowState {
   return value as WindowState
 }
 
-export function clampBounds(bounds: Rectangle, area: Rectangle): Rectangle {
-  const width = Math.min(bounds.width, area.width),
-    height = Math.min(bounds.height, area.height)
-  return {
-    width,
-    height,
-    x: Math.round(Math.max(area.x, Math.min(bounds.x, area.x + area.width - width))),
-    y: Math.round(Math.max(area.y, Math.min(bounds.y, area.y + area.height - height))),
-  }
-}
 const placement = (rect: Rectangle) => ({ ...rect, displayId: screen.getDisplayMatching(rect).id })
 
 interface Callbacks {
@@ -59,6 +50,8 @@ export class Windows {
   control?: BrowserWindow
   overlay?: BrowserWindow
   petVisible: boolean
+  private logicalPetBounds?: Rectangle
+  private dragRemainder = { x: 0, y: 0 }
   private pendingControlPage?: Page
   private hit = true
   private ignored?: boolean
@@ -154,8 +147,8 @@ export class Windows {
     return clampBounds({ x, y, width, height }, area)
   }
   private petBounds(reset = false) {
-    const scale = this.prefs().scale / 100
-    return this.restoreBounds('pet', Math.round(320 * scale), Math.round(350 * scale), reset)
+    const { width, height } = petSize(this.prefs().scale)
+    return this.restoreBounds('pet', width, height, reset)
   }
   private remember(view: 'pet' | 'control', window: BrowserWindow) {
     if (window.isDestroyed() || window.isMinimized() || window.isMaximized()) return
@@ -164,15 +157,18 @@ export class Windows {
   }
   createPet() {
     if (this.pet && !this.pet.isDestroyed()) return
+    const bounds = this.petBounds()
     const window = this.create(
       {
-        ...this.petBounds(),
+        ...bounds,
         frame: false,
         transparent: true,
         backgroundColor: '#00000000',
         title: '小蜗',
         focusable: false,
         resizable: false,
+        maximizable: false,
+        fullscreenable: false,
         skipTaskbar: true,
         hasShadow: false,
         alwaysOnTop: this.prefs().alwaysOnTop,
@@ -180,13 +176,15 @@ export class Windows {
       true,
     )
     this.pet = window
+    this.logicalPetBounds = bounds
     this.ignored = undefined
     this.hit = true
     this.setHit(true)
     window.once('ready-to-show', () => {
       if (this.petVisible) window.showInactive()
+      // Some window managers change the initial mapped size at fractional scale.
+      if (this.logicalPetBounds) this.placePet(this.logicalPetBounds)
     })
-    window.on('move', () => this.remember('pet', window))
     if (process.platform === 'win32') window.on('query-session-end', this.callbacks.sessionEnding)
     window.on('close', (event) => {
       if (!this.quitting) {
@@ -315,10 +313,55 @@ export class Windows {
     this.pet?.setIgnoreMouseEvents(ignore, { forward: ignore && !prefs.clickThrough })
     this.ignored = ignore
   }
-  drag(dx: number, dy: number) {
-    if (this.prefs().positionLocked || this.prefs().clickThrough || !this.pet) return
-    const b = this.pet.getBounds()
-    this.pet.setPosition(Math.round(b.x + dx), Math.round(b.y + dy))
+  getPetBounds() {
+    return this.logicalPetBounds && { ...this.logicalPetBounds }
+  }
+  placePet(bounds: Rectangle) {
+    if (!this.pet) return
+    // Readback bounds are rounded outwards on fractional-DPI displays.
+    // Keep authored DIPs separate so a move can never feed that rounding back into the size.
+    this.pet.setBounds(bounds)
+    this.logicalPetBounds = { ...bounds }
+    this.dragRemainder = { x: 0, y: 0 }
+    this.state.pet = placement(bounds)
+    this.callbacks.moved()
+  }
+  drag(dx: number, dy: number, finished = true) {
+    const previous = this.logicalPetBounds,
+      prefs = this.prefs()
+    if (!previous || prefs.positionLocked || prefs.clickThrough) return
+    const size = petSize(prefs.scale)
+    const offsetX = dx + this.dragRemainder.x,
+      offsetY = dy + this.dragRemainder.y
+    const intendedX = previous.x + offsetX,
+      intendedY = previous.y + offsetY
+    const destination = screen.getDisplayMatching({
+      ...size,
+      x: Math.round(intendedX),
+      y: Math.round(intendedY),
+    }).workArea
+    const next = dragBounds(
+      previous,
+      offsetX,
+      offsetY,
+      size,
+      screen.getAllDisplays().map((d) => d.workArea),
+      destination,
+      finished,
+    )
+    if (
+      finished ||
+      next.x !== previous.x ||
+      next.y !== previous.y ||
+      next.width !== previous.width ||
+      next.height !== previous.height
+    )
+      this.placePet(next)
+    // Fractional pointer coordinates are common at 125% and 150% display scale.
+    this.dragRemainder = {
+      x: !finished && next.x === Math.round(intendedX) ? intendedX - next.x : 0,
+      y: !finished && next.y === Math.round(intendedY) ? intendedY - next.y : 0,
+    }
   }
   apply(old: Preferences, next: Preferences) {
     if (old.clickThrough !== next.clickThrough) {
@@ -326,26 +369,23 @@ export class Windows {
       this.setHit(this.hit, next)
     }
     if (old.alwaysOnTop !== next.alwaysOnTop) this.pet?.setAlwaysOnTop(next.alwaysOnTop)
-    if (old.scale !== next.scale && this.pet) {
-      const b = this.pet.getBounds(),
+    if (old.scale !== next.scale && this.logicalPetBounds) {
+      const b = this.logicalPetBounds,
         area = screen.getDisplayMatching(b).workArea
-      const width = Math.round((320 * next.scale) / 100),
-        height = Math.round((350 * next.scale) / 100)
-      this.pet.setBounds(
+      const { width, height } = petSize(next.scale)
+      this.placePet(
         clampBounds({ x: b.x + b.width - width, y: b.y + b.height - height, width, height }, area),
       )
-      this.remember('pet', this.pet)
     }
   }
   resetPosition() {
     if (this.pet) {
-      this.pet.setBounds(this.petBounds(true))
-      this.remember('pet', this.pet)
+      this.placePet(this.petBounds(true))
       this.visibility(true)
     }
   }
   reposition() {
-    this.pet?.setBounds(this.petBounds())
+    this.placePet(this.petBounds())
     if (this.control) {
       const b = this.restoreBounds('control', 1020, 720)
       this.control.setMinimumSize(Math.min(b.width, 480), Math.min(b.height, 400))

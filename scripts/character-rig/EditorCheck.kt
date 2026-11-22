@@ -36,6 +36,12 @@ fun verifyEditorProjects(folder: Path, rig: RigIR) {
             authored.axes.mapIndexed { i, axis -> axis.keys[cell.coordinate[i]] }
         }
         check(savedCoordinates.containsAll(authoredCoordinates)) { "Keyforms missing on ${source.id}" }
+        val shapes = drawable.blendShapes.associateBy { it.parameterId.raw }
+        for (shape in source.shapes) {
+            val saved = shapes.getValue(shape.parameter)
+            check(saved.keys.contentEquals(shape.keys.shared()))
+            check(saved.forms.filterNotNull().all { it.positionDeltas.size == vertexCount * 2 })
+        }
     }
     val atlas = cmo3AtlasPages(root, document::extractLayerPng)
     check(atlas.atlasIndexByDrawableId.keys == expected.keys)

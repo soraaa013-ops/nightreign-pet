@@ -2,11 +2,11 @@
 
 以《黑夜君临》的渡夜节奏陪伴一节课的 Electron 桌宠。默认 40 分钟，两个白天各经历两次缩圈，再进入第一夜、第二夜与夜王战。点「出击」后自动推进，战斗中可以轻点释放一次绝招，时间不受互动影响。
 
-0.2.0 随包提供自制复仇者 Live2D。小蜗待机时眨眼，轻点会侧头，战斗时拨动里拉琴。每场战斗可释放一次绝招，击败夜王后会做出胜利动作。桌宠离线加载模型，状态条可在设置中隐藏。[角色资源与动作](docs/CHARACTER_ASSETS.md) · [可编辑模型和动作工程](scripts/character-rig/editor/)
+桌宠下方常驻两条计时进度。第一条显示当前阶段和倒计时，第二条显示整局进度和剩余时间。缩圈时光环持续收紧，暂停时两条计时同时停住。第一夜、第二夜、夜王战各有一套动作，轻点绝招会唤出灵体。可以在「设置 → 桌宠」切换计时栏的详略或将它隐藏。[角色资源与动作](docs/CHARACTER_ASSETS.md) · [可编辑模型和动作工程](scripts/character-rig/editor/)
 
 从 GitHub Releases 下载对应系统的桌宠，或下载附带编辑工程的独立模型包。Windows 用户完整解压 ZIP 后双击「小蜗渡夜.exe」。首次运行会询问随包 Cubism Core 的使用条款。[下载桌宠和模型](https://github.com/soraaa013-ops/nightreign-pet/releases/latest) · [使用与验证范围](docs/BUILD_ARTIFACTS.md)
 
-<img src="docs/character/revenant-live2d.webp" width="275" alt="小蜗待机眨眼、轻点侧头、战斗拨弦、释放绝招与胜利行礼的桌宠实录">
+<img src="docs/character/revenant-live2d.webp" width="275" alt="小蜗待机、三场战斗、召唤与胜利动作的桌宠实录">
 
 ## 运行
 
@@ -61,7 +61,7 @@ Windows安装包与macOS DMG需要相应构建工具；macOS签名公证须在�
 - `src/main/`：会话、系统窗口、托盘、持久化和权限校验。
 - `src/preload/`、`src/contracts/`：受限桌面接口和共享类型。
 - `src/renderer/`：准备界面、四页设置、局部演出与角色适配器。
-- `resources/`：离线 SDK、复仇者模型、贴图、五组动作和品牌图形。
+- `resources/`：离线 SDK、复仇者模型、贴图、七组动作和品牌图形。
 - `art/revenant/`、`scripts/character-rig/`：角色分层原稿、绑定、动作曲线和编辑工程。
 - `tests/`：核心、集成、桌面流程和真实时间测试。
 

@@ -40,8 +40,8 @@ export function PetSettings({ preferences: p, update: pref, reset, visible, send
           value={p.statusBar}
           options={[
             { value: 'hidden', label: '隐藏' },
-            { value: 'compact', label: '精简' },
-            { value: 'detailed', label: '详细' },
+            { value: 'compact', label: '标准 · 阶段与整局进度' },
+            { value: 'detailed', label: '详细 · 增加已用时间' },
           ]}
           onChange={(statusBar) => pref({ statusBar })}
         />

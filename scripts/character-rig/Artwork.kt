@@ -9,8 +9,15 @@ import javax.imageio.ImageIO
 import kotlin.math.*
 
 data class Point(val x: Float, val y: Float)
-data class Artwork(val width: Int, val height: Int, val layers: List<Layer>)
-data class Layer(val id: String, val x: Int, val y: Int, val z: Int, val image: BufferedImage) {
+data class Eye(val center: Point, val halfWidth: Float, val halfHeight: Float, val angle: Float)
+data class Landmarks(
+    val neck: Point = Point(508f, 345f), val hips: Point = Point(510f, 754f), val feet: Point = Point(512f, 1027f),
+    val pluckShoulder: Point = Point(442f, 491f), val holdShoulder: Point = Point(593f, 496f),
+    val wrist: Point = Point(581f, 493f), val harpPivot: Point = Point(701f, 580f), val strings: Point = Point(682f, 463f),
+    val eyes: List<Eye> = listOf(Eye(Point(485f, 267f), 33.5f, 18f, -.336f), Eye(Point(578f, 247f), 23f, 16.5f, -.385f)),
+)
+data class Artwork(val width: Int, val height: Int, val layers: List<Layer>, val landmarks: Landmarks)
+data class Layer(val id: String, val role: String, val x: Int, val y: Int, val z: Int, val image: BufferedImage) {
     val w = image.width
     val h = image.height
     val meshId = "Art$id"
@@ -26,11 +33,28 @@ fun loadArtwork(file: Path): Artwork {
         fun str(key: String) = fields.getValue(key).jsonPrimitive.content
         val img = requireNotNull(ImageIO.read(file.resolveSibling(str("file")).toFile()))
         require(img.width == num("width") && img.height == num("height")) { "Check size of ${str("id")}" }
-        Layer(str("id"), num("x"), num("y"), num("z"), img)
+        Layer(str("id"), fields["role"]?.jsonPrimitive?.content ?: str("id"), num("x"), num("y"), num("z"), img)
     }.sortedBy { it.z }
     require(layers.map { it.id }.toSet().size == layers.size)
     require(layers.map { it.z }.toSet().size == layers.size)
-    return Artwork(size[0], size[1], layers)
+    val landmarks = data["landmarks"]?.jsonObject ?: JsonObject(emptyMap())
+    val defaults = Landmarks()
+    fun point(id: String, fallback: Point): Point {
+        val xy = landmarks[id]?.jsonArray ?: return fallback
+        require(xy.size == 2) { "Invalid landmark $id" }
+        return Point(xy[0].jsonPrimitive.float, xy[1].jsonPrimitive.float)
+    }
+    val eyes = landmarks["eyes"]?.jsonArray?.map { item ->
+        val v = item.jsonArray.map { it.jsonPrimitive.float }
+        require(v.size == 5 && v[2] > 0 && v[3] > 0) { "eyes expects [x, y, width, height, degrees]" }
+        Eye(Point(v[0], v[1]), v[2] / 2, v[3] / 2, Math.toRadians(v[4].toDouble()).toFloat())
+    } ?: defaults.eyes
+    require(eyes.size == 2)
+    return Artwork(size[0], size[1], layers, Landmarks(
+        point("neck", defaults.neck), point("hips", defaults.hips), point("feet", defaults.feet),
+        point("pluckShoulder", defaults.pluckShoulder), point("holdShoulder", defaults.holdShoulder),
+        point("wrist", defaults.wrist), point("harpPivot", defaults.harpPivot), point("strings", defaults.strings), eyes,
+    ))
 }
 
 /** The atlas uses the original raster size so skin, eyelashes and gold filigree keep their detail. */
@@ -93,8 +117,8 @@ class Atlas(layers: List<Layer>) {
 data class Surface(val points: List<Point>, val geometry: MeshGeometry)
 
 /** Keep triangles covering the silhouette. Extra samples around the eyes allow the curved lid to close. */
-fun makeSurface(layer: Layer, atlas: Atlas): Surface {
-    val detail = when (layer.id) {
+fun makeSurface(layer: Layer, atlas: Atlas, landmarks: Landmarks): Surface {
+    val detail = when (layer.role) {
         "Head" -> 16
         "Lyre", "PluckArm", "HoldArm" -> 12
         "LidLeft", "LidRight" -> 5
@@ -103,11 +127,14 @@ fun makeSurface(layer: Layer, atlas: Atlas): Surface {
     fun axis(start: Int, size: Int, fine: IntProgression): List<Int> {
         val samples = (0..size step detail).toMutableSet()
         samples += size
-        if (layer.id == "Head") for (v in fine) if (v - start in 1 until size) samples += v - start
+        if (layer.role == "Head") for (v in fine) if (v - start in 1 until size) samples += v - start
         return samples.sorted()
     }
-    val xs = axis(layer.x, layer.w, 438..610 step 4)
-    val ys = axis(layer.y, layer.h, 211..302 step 3)
+    val eyes = landmarks.eyes
+    val fineX = (eyes.minOf { it.center.x - it.halfWidth - 14f }.toInt()..eyes.maxOf { it.center.x + it.halfWidth + 14f }.toInt()) step 4
+    val fineY = (eyes.minOf { it.center.y - it.halfHeight - 20f }.toInt()..eyes.maxOf { it.center.y + it.halfHeight + 18f }.toInt()) step 3
+    val xs = axis(layer.x, layer.w, fineX)
+    val ys = axis(layer.y, layer.h, fineY)
     val alpha = layer.image.getRGB(0, 0, layer.w, layer.h, null, 0, layer.w)
     fun hasInk(x0: Int, y0: Int, x1: Int, y1: Int): Boolean {
         for (y in max(0, y0 - 1) until min(layer.h, y1 + 1)) {

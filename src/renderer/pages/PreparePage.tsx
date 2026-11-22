@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Preset, Session, Timeline } from '../../contracts/types'
 import { getPhase } from '../../core/timeline'
 import { time } from '../useDesktop'
+import { SessionProgress } from '../components/SessionProgress'
 import { PhaseList, TimelineView } from '../components/TimelineView'
 import type { SessionActions } from './types'
 import { characterManifestUrl } from '../live2d'
@@ -63,7 +64,7 @@ export function PreparePage({
           <div className="orbit two" />
           <div className="orbit three" />
           <div className="moon" />
-          <div className="orbit-label">THE NIGHT APPROACHES</div>
+
           <img
             className="concept-portrait"
             src="app://assets/character/preview/revenant-portrait.webp"
@@ -76,9 +77,9 @@ export function PreparePage({
               ? '渡夜成功'
               : active
                 ? session.status === 'paused'
-                  ? '暂歇片刻'
+                  ? '渡夜已暂停'
                   : phase?.label
-                : '本次远征'}
+                : '本次渡夜'}
           </div>
           {session?.status === 'completed' ? (
             <h2 className="victory-heading">
@@ -89,16 +90,16 @@ export function PreparePage({
           ) : (
             <div className="hero-time">
               {time(remaining)}
-              <span>{active ? '剩余时间' : '渡夜时长'}</span>
+              <span>{active ? '整局剩余时间' : '渡夜总时长'}</span>
             </div>
           )}
           <div className="preset-caption">{active ? session.presetName : selected.name}</div>
           <p className="expedition-note">
             {session?.status === 'completed'
-              ? `你与小蜗渡过了 ${time(session.timeline.durationMs)}。让这次胜利成为下一次出发的力量。`
+              ? `本次用时 ${time(session.timeline.durationMs)}，已完成全部阶段。`
               : active
-                ? session.pauseReason || '专注眼前，夜雨会为你记录时间。'
-                : '探索，收紧的夜雨，以及天明前的最后一战。'}
+                ? session.pauseReason || '计时自动推进，关闭面板后继续。'
+                : '第一天 → 第一夜 → 第二天 → 第二夜 → 夜王战'}
           </p>
           <div className="hero-actions">
             {active ? (
@@ -148,17 +149,22 @@ export function PreparePage({
                   send({ type: 'dismissResult', sessionId: session.id }).catch(() => {})
                 }
               >
-                收起
+                收起结算
               </button>
             )}
           </div>
         </div>
         <div className="card-corner">◈</div>
       </section>
+      {session && (
+        <section className="panel-session-progress" aria-label="当前渡夜进度">
+          <SessionProgress session={session} detailed />
+        </section>
+      )}
       <div className="route-heading">
         <h2>渡夜路线</h2>
         <button className="text-button" onClick={() => openRhythm()}>
-          调整节奏 →
+          设置渡夜时长 →
         </button>
       </div>
       <div className="five-stages">
@@ -197,7 +203,7 @@ export function PreparePage({
           aria-expanded={showDetails}
           onClick={() => setShowDetails(!showDetails)}
         >
-          {showDetails ? '收起' : '完整时间线'} {showDetails ? '−' : '+'}
+          {showDetails ? '收起时间线' : '完整时间线'} {showDetails ? '−' : '+'}
         </button>
       </div>
       {showDetails && timeline && <PhaseList timeline={timeline} />}

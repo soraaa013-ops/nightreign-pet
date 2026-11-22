@@ -1,9 +1,17 @@
-export const characterActions = ['idle', 'touch', 'battle', 'ultimate', 'victory'] as const
+export const characterActions = [
+  'idle',
+  'touch',
+  'battle',
+  'battle2',
+  'nightlord',
+  'ultimate',
+  'victory',
+] as const
 export type CharacterAction = (typeof characterActions)[number]
-export type BaseAction = 'idle' | 'battle'
+export type BaseAction = 'idle' | 'battle' | 'battle2' | 'nightlord'
 
 export interface ActionMapping {
-  motion?: { group: string; index: number }
+  motion?: { group: string; index: number; variants?: boolean }
   expression?: string
 }
 
@@ -98,6 +106,7 @@ function isActionMapping(value: unknown): value is ActionMapping {
     value.motion.group.length > 0 &&
     typeof value.motion.index === 'number' &&
     Number.isSafeInteger(value.motion.index) &&
+    (value.motion.variants === undefined || typeof value.motion.variants === 'boolean') &&
     value.motion.index >= 0
   )
 }

@@ -44,8 +44,8 @@ export function SoundSettings({ preferences: p, update: pref, reset, send, sound
       </Panel>
       <Panel title="演出">
         <Toggle
-          label="缩圈提示"
-          description="开始缩圈时显示文字并播放提示音。"
+          label="缩圈提示音"
+          description="开始缩圈时播放提示音，缩圈进度始终显示在状态条。"
           value={p.shrinkAlerts}
           onChange={(shrinkAlerts) => pref({ shrinkAlerts })}
         />
@@ -53,9 +53,9 @@ export function SoundSettings({ preferences: p, update: pref, reset, send, sound
           label="演出强度"
           value={p.intensity}
           options={[
-            { value: 'low', label: '低 · 安静陪伴' },
-            { value: 'standard', label: '标准 · 夜雨渐近' },
-            { value: 'high', label: '强 · 更浓的夜色' },
+            { value: 'low', label: '低 · 减少动态效果' },
+            { value: 'standard', label: '标准 · 夜雨与光环' },
+            { value: 'high', label: '强 · 增加夜雨效果' },
           ]}
           onChange={(intensity) => pref({ intensity })}
         />

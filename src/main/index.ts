@@ -219,7 +219,7 @@ async function boot() {
         windows.setHit(command.hit)
         return snapshot()
       case 'drag':
-        windows.drag(command.dx, command.dy)
+        windows.drag(command.dx, command.dy, command.finished)
         return snapshot()
       case 'quit':
         void requestQuit()
