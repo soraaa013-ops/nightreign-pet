@@ -7,7 +7,7 @@ afterEach(() => vi.unstubAllGlobals())
 function oscillatorNode() {
   return {
     type: '',
-    frequency: { value: 0 },
+    frequency: { setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
     connect: vi.fn(),
     disconnect: vi.fn(),
     start: vi.fn(),
@@ -90,6 +90,15 @@ test('静音和安静模式阻止音效，恢复后延用音量，释放时关�
   audio.cue('phase')
   expect(master.gain.setTargetAtTime.mock.lastCall?.[0]).toBe(0.63)
   expect(context.oscillators.length).toBeGreaterThan(initialNotes)
+
+  audio.cue('ultimate')
+  const voices = context.oscillators.slice(-2)
+  for (const voice of voices) {
+    expect(voice.start).toHaveBeenCalledWith(context.currentTime)
+    expect(voice.frequency.exponentialRampToValueAtTime.mock.lastCall?.[1]).toBe(
+      context.currentTime + 1.55,
+    )
+  }
 
   audio.dispose()
   expect(context.close).toHaveBeenCalledOnce()

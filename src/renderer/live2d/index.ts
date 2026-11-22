@@ -65,17 +65,20 @@ export class Live2DAdapter {
   setVisible(visible: boolean): void {
     if (this.visible === visible) return
     this.visible = visible
+    if (!visible) this.clearPointer(true)
     if (visible) this.schedule()
     else this.stopFrames()
   }
 
   setReducedMotion(reduced: boolean): void {
+    if (reduced && !this.reducedMotion) this.clearPointer(true)
     this.reducedMotion = reduced
   }
 
   setPaused(paused: boolean): void {
     if (this.paused === paused) return
     this.paused = paused
+    if (paused) this.clearPointer(true)
     if (paused && this.hasDrawn) this.stopFrames()
     else this.schedule()
   }
@@ -87,6 +90,21 @@ export class Live2DAdapter {
 
   play(action: CharacterAction): boolean {
     return this.runtime?.play(action) ?? false
+  }
+
+  lookAt(clientX: number, clientY: number): void {
+    if (!this.runtime || !this.visible || this.paused || this.reducedMotion) return
+    const bounds = this.canvas.getBoundingClientRect()
+    if (!bounds.width || !bounds.height) return
+    const x = (clientX - bounds.left) / bounds.width
+    const y = (clientY - bounds.top) / bounds.height
+    if (x < 0 || x > 1 || y < 0 || y > 1) return this.clearPointer()
+    // The face sits above the centre of the portrait.
+    this.runtime.lookAt((x - 0.5) / 0.35, (y - 0.23) / 0.35)
+  }
+
+  clearPointer(immediate = false): void {
+    this.runtime?.clearPointer(immediate)
   }
 
   hitTest(clientX: number, clientY: number): boolean {

@@ -180,7 +180,7 @@ try {
         id: 'packaged-smoke',
         name: '打包验证',
         mode: 'custom',
-        customSeconds: Array(11).fill(1),
+        customSeconds: [1, 1, 1, 1, 8, 1, 1, 1, 1, 1, 1],
         battleSeconds: [180, 240, 300],
         classroomSeconds: 2400,
       },
@@ -201,14 +201,21 @@ try {
     }),
   ])
 
+  await expect(pet.getByRole('progressbar', { name: '战斗进度' })).toBeVisible({ timeout: 12_000 })
+  const modelBounds = await pet.locator('.pet-model').boundingBox()
+  await pet.mouse.dblclick(
+    modelBounds.x + modelBounds.width / 2,
+    modelBounds.y + modelBounds.height / 2,
+  )
+  await expect.poll(() => events.filter((event) => event.kind === 'ultimate').length).toBe(1)
   await expect
     .poll(() => events.find((event) => event.kind === 'victory'), { timeout: 25_000 })
     .toBeDefined()
   result.completed = await pet.evaluate(async () => (await window.nightreign.getSnapshot()).session)
   expect(result.completed).toMatchObject({
     status: 'completed',
-    elapsedMs: 11_000,
-    usedUltimates: [],
+    elapsedMs: 18_000,
+    usedUltimates: ['night1'],
   })
   await expect(pet.getByText('NIGHTLORD SLAIN', { exact: true })).toBeVisible()
   const phases = events.filter((event) => event.kind === 'phase')
@@ -217,7 +224,7 @@ try {
   expect(victories).toHaveLength(1)
   expect(victories[0].label).toBe('NIGHTLORD SLAIN')
   result.observedDurationMs = victories[0].observedMs - phases[0].observedMs
-  expect(Math.abs(result.observedDurationMs - 11_000)).toBeLessThanOrEqual(1000)
+  expect(Math.abs(result.observedDurationMs - 18_000)).toBeLessThanOrEqual(1000)
   result.victoryCount = victories.length
   expect(result.remoteRequests).toEqual([])
   await mkdir(dirname(output), { recursive: true })

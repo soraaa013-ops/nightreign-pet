@@ -53,6 +53,7 @@ export interface CubismModel {
   getDrawableVertexPositions(index: number): Float32Array
   getParameterCount(): number
   getParameterIndex(id: CubismId): number
+  setParameterValueByIndex(index: number, value: number, weight?: number): void
   setParameterValueById(id: CubismId, value: number): void
   saveParameters(): void
   loadParameters(): void

@@ -64,8 +64,10 @@ export function hitDrawables(
   masks: TextureMask[],
   x: number,
   y: number,
+  decorative: ReadonlySet<number>,
 ): boolean {
   for (let i = model.getDrawableCount() - 1; i >= 0; i--) {
+    if (decorative.has(i)) continue
     const opacity = model.getDrawableOpacity(i)
     const mask = masks[model.getDrawableTextureIndex(i)]
     if (!mask || opacity < 0.1 || !model.getDrawableDynamicFlagIsVisible(i)) continue

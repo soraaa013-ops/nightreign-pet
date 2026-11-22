@@ -51,11 +51,11 @@ jobs:
         run: npm test
       - name: Build application
         run: npm run build
-      - name: Test Windows dragging and session HUD
+      - name: Test Windows pointer tracking, gestures, dragging and session HUD
         if: runner.os == 'Windows'
         env:
           NIGHTREIGN_TEST_SOFTWARE_WEBGL: '1'
-        run: npx playwright test pet-drag.spec.ts hud.spec.ts
+        run: npx playwright test pet-drag.spec.ts hud.spec.ts pet-gestures.spec.ts pointer-look.spec.ts
       - name: Build Windows portable archive
         if: runner.os == 'Windows'
         run: npx electron-builder --win zip --x64 --publish never

@@ -75,6 +75,16 @@
 			"Id": "ParamSpirit",
 			"GroupId": "",
 			"Name": "召唤灵 / Spirit"
+		},
+		{
+			"Id": "ParamImmortalMarch",
+			"GroupId": "",
+			"Name": "不死行军 / Immortal March"
+		},
+		{
+			"Id": "ParamMarchWave",
+			"GroupId": "",
+			"Name": "行进波纹 / March wave"
 		}
 	],
 	"ParameterGroups": [],
@@ -82,6 +92,10 @@
 		{
 			"Id": "PartRevenant",
 			"Name": "Revenant"
+		},
+		{
+			"Id": "PartImmortalMarch",
+			"Name": "Immortal March"
 		}
 	],
 	"Drawables": [
@@ -114,12 +128,28 @@
 			"Name": "Head"
 		},
 		{
+			"Id": "ArtMarchGather",
+			"Name": "MarchGather"
+		},
+		{
+			"Id": "ArtMarchCry",
+			"Name": "MarchCry"
+		},
+		{
 			"Id": "ArtLidLeft",
 			"Name": "LidLeft"
 		},
 		{
 			"Id": "ArtLidRight",
 			"Name": "LidRight"
+		},
+		{
+			"Id": "ArtMarchWave",
+			"Name": "MarchWave"
+		},
+		{
+			"Id": "ArtMarchSparks",
+			"Name": "MarchSparks"
 		}
 	]
 }

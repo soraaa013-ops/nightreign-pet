@@ -93,6 +93,43 @@ export async function inspectCharacterRig() {
       })
     }
 
+    function visibleMarchMeshes(cast: number, wave: number) {
+      parameters.values.set(parameters.defaultValues)
+      parameters.values[parameters.ids.indexOf('ParamImmortalMarch')] = cast
+      parameters.values[parameters.ids.indexOf('ParamMarchWave')] = wave
+      model!.update()
+      return drawables.ids.filter((_, i) => drawables.opacities[i] > 0.01)
+    }
+    function cryArmTravel() {
+      visibleMarchMeshes(1, 0)
+      const mesh = drawables.ids.indexOf('ArtMarchCry')
+      const arm = parameters.ids.indexOf('ParamArmLift')
+      parameters.values[arm] = -0.75
+      model!.update()
+      const folded = new Float32Array(drawables.vertexPositions[mesh])
+      parameters.values[arm] = 0.75
+      model!.update()
+      const open = drawables.vertexPositions[mesh]
+      let travel = 0
+      for (let i = 0; i < open.length; i += 2)
+        travel = Math.max(travel, Math.hypot(open[i] - folded[i], open[i + 1] - folded[i + 1]))
+      return travel * model!.canvasinfo.PixelsPerUnit
+    }
+    const march = {
+      armTravelPx: cryArmTravel(),
+      neutral: visibleMarchMeshes(0, 0),
+      gathered: visibleMarchMeshes(0.5, 0),
+      cry: visibleMarchMeshes(1, 0),
+      wave: visibleMarchMeshes(1, 0.4),
+      settled: visibleMarchMeshes(0, 1),
+      variants: [] as {
+        name: string
+        cast: number[]
+        wave: number[]
+        spirit: number[]
+        pluck: number[]
+      }[],
+    }
     const actions: Record<string, { parameters: string[]; meshes: string[]; files: string[] }> = {}
     const parameterMeshes = Object.fromEntries(
       parameters.ids.map((id, index) => {
@@ -113,6 +150,7 @@ export async function inspectCharacterRig() {
         for (const { File: path } of slots) {
           files.push(path)
           const motion = await (await get(new URL(path, modelUrl))).json()
+          const clipKeys = new Map<string, number[]>()
           for (const curve of motion.Curves) {
             if (curve.Target !== 'Parameter') continue
             const seg: number[] = curve.Segments
@@ -124,7 +162,16 @@ export async function inspectCharacterRig() {
               i += width
             }
             values.set(curve.Id, [...(values.get(curve.Id) ?? []), ...keys])
+            clipKeys.set(curve.Id, keys)
           }
+          if (action === 'ultimate')
+            march.variants.push({
+              name: path,
+              cast: clipKeys.get('ParamImmortalMarch') ?? [],
+              wave: clipKeys.get('ParamMarchWave') ?? [],
+              spirit: clipKeys.get('ParamSpirit') ?? [],
+              pluck: clipKeys.get('ParamPluck') ?? [],
+            })
         }
       }
       if (mapping.expression) {
@@ -236,6 +283,7 @@ export async function inspectCharacterRig() {
       textures: refs.Textures.length,
       triangles: Array.from(drawables.indexCounts).reduce((a, b) => a + b, 0) / 3,
       parameterMeshes,
+      march,
       face: { maxLidDriftPx, maxMidBlinkOpacity, minClosedOpacity, maxClosedGazeDriftPx },
       actions,
     }

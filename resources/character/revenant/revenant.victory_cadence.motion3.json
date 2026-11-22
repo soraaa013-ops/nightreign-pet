@@ -7,9 +7,9 @@
         "FadeOutTime": 0.16,
         "Loop": false,
         "AreBeziersRestricted": true,
-        "CurveCount": 14,
-        "TotalSegmentCount": 206,
-        "TotalPointCount": 632,
+        "CurveCount": 16,
+        "TotalSegmentCount": 208,
+        "TotalPointCount": 640,
         "UserDataCount": 0,
         "TotalUserDataSize": 0
     },
@@ -1556,6 +1556,36 @@
         {
             "Target": "Parameter",
             "Id": "ParamSpirit",
+            "Segments": [
+                0.0,
+                0.0,
+                1,
+                1.4111111,
+                0.0,
+                2.8222222,
+                0.0,
+                4.233333,
+                0.0
+            ]
+        },
+        {
+            "Target": "Parameter",
+            "Id": "ParamImmortalMarch",
+            "Segments": [
+                0.0,
+                0.0,
+                1,
+                1.4111111,
+                0.0,
+                2.8222222,
+                0.0,
+                4.233333,
+                0.0
+            ]
+        },
+        {
+            "Target": "Parameter",
+            "Id": "ParamMarchWave",
             "Segments": [
                 0.0,
                 0.0,

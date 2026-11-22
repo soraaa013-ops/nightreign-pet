@@ -8,7 +8,7 @@ const root = path.resolve(__dirname, '../../art/revenant')
 async function assemble() {
   const composition = JSON.parse(await fs.readFile(path.join(root, 'composition.json'), 'utf8'))
   const paintings = {}
-  for (const { painting = 'painted-parts.png' } of composition.layers) {
+  for (const { painting = 'painted-parts.png' } of [...composition.layers, ...composition.march]) {
     if (!(painting in paintings)) {
       paintings[painting] = (await fs.readFile(path.join(root, painting))).toString('base64')
     }
@@ -33,7 +33,7 @@ async function assemble() {
 }
 
 async function rasterize(
-  { canvas: dimensions, layers, eyelids, spirit, landmarks },
+  { canvas: dimensions, layers, march, eyelids, spirit, landmarks },
   input,
   blink,
   spiritImage,
@@ -80,7 +80,7 @@ async function rasterize(
       clip,
       place: [x, y, width, height],
     },
-  ] of layers.entries()) {
+  ] of [...layers, ...march].entries()) {
     const cutout = surface(width, height)
     const ctx = cutout.getContext('2d', { willReadFrequently: true })
     ctx.imageSmoothingQuality = 'high'
@@ -104,7 +104,7 @@ async function rasterize(
       if (alpha < 96) pixels.data[i] = alpha * Math.max(0, (alpha - 32) / 64)
     }
     ctx.putImageData(pixels, 0, 0)
-    combined.getContext('2d').drawImage(cutout, x, y)
+    if (z < layers.length) combined.getContext('2d').drawImage(cutout, x, y)
     const file = `parts/${id}.png`
     images.push({ file, data: imageData(cutout) })
     layout.layers.push({ id, file, x, y, width, height, z: z + 1 })
@@ -117,7 +117,14 @@ async function rasterize(
   const portrait = thumbnail.toDataURL('image/webp', 0.94).split(',')[1]
   const head = layout.layers.find(({ id }) => id === 'Head')
   const closed = await decode(blink)
-  for (const [index, { id, radii: [rx, ry], registration }] of eyelids.layers.entries()) {
+  for (const [
+    index,
+    {
+      id,
+      radii: [rx, ry],
+      registration,
+    },
+  ] of eyelids.layers.entries()) {
     const [eyeX, eyeY, , , tilt] = landmarks.eyes[index]
     const cx = eyeX - head.x
     const cy = eyeY - head.y

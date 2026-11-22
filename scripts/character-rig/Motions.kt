@@ -60,7 +60,7 @@ private class Track(val keys: List<Key>) {
 
 private data class Note(val contact: Int, val strength: Double)
 private val controls = listOf(Control.LEAN, Control.STEP, Control.LEVEL, Control.ARM, Control.PLUCK,
-    Control.HARP, Control.TILT, Control.NOD, Control.GAZE, Control.EYES, Control.WIND, Control.HEM, Control.RESONANCE, Control.SPIRIT)
+    Control.HARP, Control.TILT, Control.NOD, Control.GAZE, Control.EYES, Control.WIND, Control.HEM, Control.RESONANCE, Control.SPIRIT, Control.MARCH, Control.WAVE)
 
 private class Performance(private val action: Action, private val name: String, private val frames: Int) {
     private val lanes = mutableMapOf<Control, MutableList<Key>>()
@@ -323,31 +323,32 @@ fun motions(hasSpirit: Boolean): List<Clip> {
         lane(Control.SPIRIT, 61 to .0, 75 to 1.0, 88 to 1.0, 105 to .0)
     }
 
+    // Immortal March: fold toward the faceplate, reveal the spirit and cry out, then settle.
     scene(Action.ULTIMATE, "ultimate", 124) {
-        // Draw the instrument close. Look across to the spirit before the arm opens.
-        lane(eyes, 6 to .81, 26 to .83, 34 to -.97, 84 to -.89, 100 to -.26)
-        lane(head, 14 to .40, 27 to .47, 47 to -.62, 65 to -.72, 90 to -.53, 107 to -.14)
-        lane(nod, 12 to .16, 27 to .66, 33 to .63, 49 to -.62, 75 to -.49, 100 to -.11)
-        lane(weight, 17 to .35, 28 to .49, 47 to -.62, 65 to -.53, 90 to -.25)
-        lane(foot, 24 to .0, 41 to .41, 58 to .44, 79 to .34, 106 to .0)
-        lane(height, 21 to -.54, 30 to -.61, 49 to .32, 66 to .25, 90 to .03)
-        lane(elbow, 12 to -.24, 27 to -.41, 42 to .76, 51 to .99, 72 to .96, 89 to .77, 106 to .22)
-        lane(lyre, 18 to -.62, 29 to -.71, 48 to .34, 60 to .60, 83 to .52, 105 to -.06)
-        note(42, .97, 14, 4)
-        blink(23, 4)
-        lane(Control.SPIRIT, 42 to .0, 52 to .74, 62 to 1.0, 82 to 1.0, 94 to .53, 104 to .0)
+        lane(Control.WAVE, 40 to .0, 45 to .20, 56 to .61, 77 to .96, 86 to 1.0, 115 to 1.0)
+        lane(Control.MARCH, 6 to .0, 11 to .50, 34 to .55, 39 to .64, 43 to .93, 48 to 1.0,
+            71 to 1.0, 80 to .91, 87 to .62, 96 to .50, 104 to .49, 111 to .0)
+        lane(eyes, 4 to -.40, 10 to -.65, 89 to -.36, 108 to .15)
+        lane(head, 12 to .16, 34 to .44, 40 to .38, 47 to -.36, 57 to -.23, 68 to -.28, 87 to .14, 105 to .23)
+        lane(nod, 14 to .63, 33 to .91, 40 to .78, 47 to -.98, 57 to -.68, 81 to -.55, 91 to .46, 106 to .33)
+        lane(weight, 18 to .25, 36 to .42, 42 to .19, 49 to -.57, 62 to -.35, 84 to -.19, 99 to .21, 111 to .10)
+        lane(height, 14 to -.48, 34 to -.83, 40 to -.92, 47 to .76, 56 to .44, 73 to .36, 89 to -.42, 101 to -.52, 113 to -.13)
+        lane(lyre, 7 to -.29, 15 to -.61, 96 to -.61, 111 to -.25)
+        lane(elbow, 8 to -.23, 18 to .27, 33 to .46, 38 to .32, 42 to -.79, 49 to .64,
+            55 to .84, 64 to .55, 77 to .44, 85 to -.54, 97 to -.24, 111 to -.12)
     }
     scene(Action.ULTIMATE, "ultimate_requiem", 132) {
-        lane(eyes, 7 to .83, 38 to .87, 50 to -.66, 72 to -.86, 105 to -.47)
-        lane(head, 18 to .46, 36 to .51, 56 to -.19, 76 to -.58, 99 to -.49, 116 to -.13)
-        lane(nod, 11 to .13, 31 to .53, 44 to .56, 65 to -.33, 87 to -.27, 109 to .12)
-        lane(weight, 19 to .21, 39 to .36, 65 to -.40, 83 to -.44, 108 to -.18)
-        lane(height, 17 to -.33, 40 to -.38, 63 to .22, 85 to .14, 108 to -.06)
-        lane(elbow, 15 to .23, 36 to .38, 57 to .73, 76 to .79, 95 to .50, 114 to .10)
-        lane(lyre, 20 to -.45, 48 to -.21, 71 to .38, 90 to .31, 110 to -.12)
-        note(25, .39, 10, 5); note(49, .83, 15, 6)
-        blink(83, 12)
-        lane(Control.SPIRIT, 50 to .0, 61 to .50, 73 to 1.0, 91 to .99, 113 to .0)
+        lane(Control.WAVE, 45 to .0, 50 to .22, 62 to .62, 81 to .95, 90 to 1.0, 123 to 1.0)
+        lane(Control.MARCH, 8 to .0, 14 to .50, 36 to .54, 44 to .63, 48 to .95, 52 to 1.0,
+            77 to 1.0, 86 to .89, 92 to .64, 103 to .50, 111 to .49, 119 to .0)
+        lane(eyes, 6 to .42, 13 to .62, 94 to .27, 113 to -.18)
+        lane(head, 15 to -.22, 39 to -.49, 45 to -.42, 53 to .45, 62 to .31, 78 to .35, 92 to -.10, 111 to -.24)
+        lane(nod, 16 to .62, 35 to .86, 44 to .95, 53 to -.92, 67 to -.69, 83 to -.48, 97 to .52, 111 to .42)
+        lane(weight, 20 to -.24, 41 to -.39, 46 to -.20, 53 to .51, 68 to .37, 82 to .31, 102 to -.21, 118 to -.12)
+        lane(height, 17 to -.43, 37 to -.77, 45 to -.91, 52 to .68, 64 to .38, 80 to .32, 97 to -.48, 106 to -.46, 122 to -.06)
+        lane(lyre, 8 to -.22, 17 to -.54, 105 to -.54, 118 to -.19)
+        lane(elbow, 9 to -.17, 21 to .19, 40 to .51, 45 to .13, 48 to -.74, 57 to .82,
+            65 to .61, 78 to .55, 90 to -.48, 105 to -.32, 118 to -.12)
     }
 
     scene(Action.VICTORY, "victory", 113) {

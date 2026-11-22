@@ -4,6 +4,10 @@
   "model": "revenant.model3.json",
   "scale": 0.94,
   "offsetY": -0.025,
+  "decorativeDrawables": [
+    "ArtMarchWave",
+    "ArtMarchSparks"
+  ],
   "actions": {
     "idle": {
       "motion": {

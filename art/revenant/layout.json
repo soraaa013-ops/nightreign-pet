@@ -136,13 +136,31 @@
       "z": 6
     },
     {
+      "id": "MarchGather",
+      "file": "parts/MarchGather.png",
+      "x": 208,
+      "y": 171,
+      "width": 621,
+      "height": 875,
+      "z": 7
+    },
+    {
+      "id": "MarchCry",
+      "file": "parts/MarchCry.png",
+      "x": 49,
+      "y": 34,
+      "width": 899,
+      "height": 1013,
+      "z": 8
+    },
+    {
       "id": "LidLeft",
       "file": "parts/LidLeft.png",
       "x": 412,
       "y": 146,
       "width": 94,
       "height": 94,
-      "z": 7
+      "z": 9
     },
     {
       "id": "LidRight",
@@ -151,7 +169,7 @@
       "y": 146,
       "width": 94,
       "height": 94,
-      "z": 8
+      "z": 10
     }
   ]
 }

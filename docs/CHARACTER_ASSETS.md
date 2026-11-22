@@ -4,7 +4,7 @@
 
 ## 当前日漫模型
 
-日漫版按人偶的身形重绘。肩部窄小，双脚从裙摆下露出，花冠和银色长发围住面部。人物与甲胄灵体的分层画稿由 ImageGen 生成，分别绑定至头部、眼周、衣裙、手腕和琴弦。灵体独立于头部、双眼睑、后发、裙身、手臂和琴，平时隐去。闭眼稿与睁眼稿各自保留完整分辨率。每只眼用自己的眼角和睫线位置绑定，眨眼时先收拢虹膜，闭合后才露出画好的睫线。首夜拨弦时脚下站稳，第二夜以手腕切换连音，召唤时角色保持举琴姿态直至灵体退场。[分层画稿](../art/revenant/) · [动作关键帧](../scripts/character-rig/Motions.kt)
+日漫版按人偶的身形重绘。肩部窄小，双脚从裙摆下露出，花冠和银色长发围住面部。人物与甲胄灵体的分层画稿由 ImageGen 生成，分别绑定至头部、眼周、衣裙、手腕和琴弦。灵体独立于头部、双眼睑、后发、裙身、手臂和琴，平时隐去。闭眼稿与睁眼稿各自保留完整分辨率。每只眼用自己的眼角和睫线位置绑定，眨眼时先收拢虹膜，闭合后才露出画好的睫线。首夜拨弦时脚下站稳，第二夜以手腕切换连音。绝招另绘了俯身和仰身的无琴姿势。[分层画稿](../art/revenant/) · [动作关键帧](../scripts/character-rig/Motions.kt)
 
 | 场景 | 动作数 | 表现 |
 | --- | ---: | --- |
@@ -13,10 +13,16 @@
 | 第一夜 | 4 | 单次拨击、回撤与防守 |
 | 第二夜 | 4 | 带停顿的双拨和三连音 |
 | 夜王战 | 5 | 后撤护琴、踏步扫弦与召唤 |
-| 绝招 | 2 | 蓄势、召唤灵体、收势 |
+| 绝招 | 2 | 不死行军，俯身蓄势、仰身哀叹、波纹退去 |
 | 胜利 | 2 | 结算时收琴行礼 |
 
 同一场战斗按顺序换招，轻触和绝招结束后回到当前阶段。[桌宠动作预览](character/v0.3.4-motions.webp) · [运行时眼部对照](character/v0.3.3-face.png)
+
+## 不死行军
+
+复仇者拨里拉琴召唤家人，是她的角色技能。她的绝招「不死行军」（Immortal March）释放复仇的哀叹，在一段时间内保护自己和附近的同伴，也能救起濒死同伴，并强化已经在场的家人。[万代南梦宫角色介绍](https://en.bandainamcoent.eu/elden-ring/elden-ring-nightreign/characters/revenant)
+
+实机片段里，她先屈膝俯身，双手收向脸前。约一秒半时，她突然挺起上身，周身亮起青白色灵光，脚下的暖色波纹向外扩开。桌宠按这三个拍点编排。仰身时，一侧瓷面揭开，露出怨灵眼窝；另一侧保留人偶的眼睛和肤色。随后手肘回落，小蜗收势接回战斗。动画播放时，课堂倒计时照常推进。[游戏实录](https://kamigame.jp/vls-kamigame-wiki.appspot.com/upload/transcoded/372687137163755662.mp4) · [游戏中揭开瓷面的观察记录](https://www.pcgamer.com/games/rpg/i-played-elden-ring-nightreign-for-goofy-co-op-shenanigans-but-wound-up-punched-in-my-feelings-by-the-revenants-remembrance-questline/) · [桌宠实录](character/v0.3.5-immortal-march.webp)
 
 ## 动作编排参考
 
@@ -67,7 +73,7 @@ FromSoftware 官方 FAQ 允许一定范围内个人非营利展示同人创作�
 }
 ```
 
-上述动作组、表情和命中区是格式示例，实际名称取自模型文件。`actions` 支持 `idle`、`touch`、`battle`、`battle2`、`nightlord`、`ultimate`、`victory`，每一项可指定动作、表情或两者。设置 `motion.variants: true` 会从给定索引开始轮换该组内的动作。模型若提供眨眼参数组或标准的 `ParamBreath`，可在未提供待机动作时维持轻微待机。可选的 `hitAreas` 先限定命中区。点按随后根据当前变形网格和贴图透明度判定，琴框、发丝与裙摆之间的透明空隙可以点透。`scale`、`offsetX`、`offsetY` 可调整模型大小和位置。
+上述动作组、表情和命中区是格式示例，实际名称取自模型文件。`actions` 支持 `idle`、`touch`、`battle`、`battle2`、`nightlord`、`ultimate`、`victory`，每一项可指定动作、表情或两者。设置 `motion.variants: true` 会从给定索引开始轮换该组内的动作。模型若提供眨眼参数组或标准的 `ParamBreath`，可在未提供待机动作时维持轻微待机。可选的 `hitAreas` 先限定命中区，`decorativeDrawables` 列出的灵光和扩散波只参与绘制。点按随后根据当前变形网格和贴图透明度判定，琴框、发丝与裙摆之间的透明空隙可以点透。`scale`、`offsetX`、`offsetY` 可调整模型大小和位置。
 
 ## SDK 初次接入的验证记录
 

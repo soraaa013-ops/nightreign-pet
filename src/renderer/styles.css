@@ -1006,15 +1006,6 @@ body[data-view='pet'] #root {
   font-size: 22px;
   color: #8d7c57;
 }
-.pet-ultimate {
-  position: absolute;
-  right: 12px;
-  top: 16px;
-  font-size: 9px;
-  padding: 5px 8px;
-  color: #c5aa73;
-  background: #111b2de8;
-}
 @media (max-width: 800px) {
   .sidebar {
     width: 165px;

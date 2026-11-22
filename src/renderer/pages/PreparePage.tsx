@@ -17,7 +17,7 @@ export function useCharacterNotice() {
       .then(() => {
         if (request.signal.aborted) return
         setModelReady(true)
-        setModelDetails('轻点小蜗可以互动，每场战斗可释放一次绝招。')
+        setModelDetails('战斗中双击小蜗施放「不死行军」，每场一次。')
       })
       .catch(() => {
         if (!request.signal.aborted) setModelDetails('小蜗暂时以立绘陪伴，可以在桌宠旁重试加载。')
@@ -53,6 +53,33 @@ export function PreparePage({
   const active = session?.status === 'running' || session?.status === 'paused'
   const phase = session ? getPhase(session.timeline, session.elapsedMs) : null
   const timeline = session?.timeline ?? preview
+  const canCast =
+    session?.status === 'running' &&
+    phase?.kind === 'battle' &&
+    !session.usedUltimates.includes(phase.id)
+  const sessionId = session?.id
+  const phaseId = phase?.id
+  useEffect(() => {
+    if (!canCast || !sessionId || !phaseId) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.code !== 'KeyU' ||
+        !event.altKey ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.shiftKey ||
+        event.repeat ||
+        event.isComposing ||
+        event.defaultPrevented ||
+        document.querySelector('[aria-modal="true"]')
+      )
+        return
+      event.preventDefault()
+      void send({ type: 'ultimate', sessionId, phaseId }).catch(() => {})
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [canCast, sessionId, phaseId, send])
   const remaining = session
     ? Math.max(0, session.timeline.durationMs - session.elapsedMs)
     : (preview?.durationMs ?? 2400000)
@@ -98,7 +125,10 @@ export function PreparePage({
             {session?.status === 'completed'
               ? `本次用时 ${time(session.timeline.durationMs)}，已完成全部阶段。`
               : active
-                ? session.pauseReason || '计时自动推进，关闭面板后继续。'
+                ? session.pauseReason ||
+                  (canCast
+                    ? '双击小蜗，或在本页按 Alt+U 施放「不死行军」。'
+                    : '计时自动推进，关闭面板后继续。')
                 : '第一天 → 第一夜 → 第二天 → 第二夜 → 夜王战'}
           </p>
           <div className="hero-actions">

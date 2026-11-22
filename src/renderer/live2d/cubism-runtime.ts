@@ -9,6 +9,7 @@ import {
   CubismShaderManager_WebGL,
   CubismUserModel,
 } from './vendor/cubism-framework.js'
+import { PointerLook } from './pointer-look'
 import type { CubismId, CubismMotion } from './vendor/cubism-framework.js'
 
 const priorities: Record<CharacterAction, number> = {
@@ -33,9 +34,11 @@ export class CubismRuntime extends CubismUserModel {
   private readonly masks: TextureMask[] = []
   private readonly actions = new Map<CharacterAction, LoadedAction>()
   private readonly hitAreas: CubismId[] = []
+  private readonly decorativeDrawables = new Set<number>()
   private readonly projection = new CubismMatrix44()
   private blink: CubismEyeBlink | undefined
   private breath: CubismId | undefined
+  private pointerLook?: PointerLook
   private activeAction: CharacterAction | undefined
   private baseAction: BaseAction = 'idle'
   private expressionTime = 0
@@ -92,13 +95,24 @@ export class CubismRuntime extends CubismUserModel {
       action = 'battle'
     if (this.baseAction === action) return
     this.baseAction = action
-    // Finish releasing the strings before returning to the current phase.
-    if (this.activeAction !== 'ultimate' && this.activeAction !== 'victory') this.startAction(action)
+    // Let a one-shot finish its recovery before starting the new phase.
+    if (this.activeAction !== 'ultimate' && this.activeAction !== 'victory')
+      this.startAction(action)
+  }
+
+  lookAt(x: number, y: number): void {
+    if (this.baseAction === 'idle' && (!this.activeAction || this.activeAction === 'idle'))
+      this.pointerLook?.aim(x, y)
+  }
+
+  clearPointer(immediate = false): void {
+    this.pointerLook?.release(immediate)
   }
 
   private startAction(action: CharacterAction): boolean {
     const definition = this.actions.get(action)
     if (!definition) return action === 'idle' && Boolean(this.blink || this.breath)
+    if (action !== 'idle') this.clearPointer(true)
     this.activeAction = action
     const motion = definition.motions[definition.next]
     this.expressionTime = definition.expression && !motion ? 1.2 : 0
@@ -131,6 +145,12 @@ export class CubismRuntime extends CubismUserModel {
     }
     if (!moving && !reducedMotion) this.blink?.updateParameters(model, elapsed)
     this._expressionManager.updateMotion(model, elapsed)
+    if (
+      !reducedMotion &&
+      this.baseAction === 'idle' &&
+      (!this.activeAction || this.activeAction === 'idle')
+    )
+      this.pointerLook?.apply(elapsed)
     this._physics?.evaluate(model, elapsed)
     this._pose?.updateParameters(model, elapsed)
     model.update()
@@ -161,7 +181,13 @@ export class CubismRuntime extends CubismUserModel {
     if (!model) return false
     if (this.hitAreas.length && !this.hitAreas.some((id) => this.isHit(id, x, y))) return false
     const matrix = this.getModelMatrix()
-    return hitDrawables(model, this.masks, matrix.invertTransformX(x), matrix.invertTransformY(y))
+    return hitDrawables(
+      model,
+      this.masks,
+      matrix.invertTransformX(x),
+      matrix.invertTransformY(y),
+      this.decorativeDrawables,
+    )
   }
 
   close(): void {
@@ -197,9 +223,14 @@ export class CubismRuntime extends CubismUserModel {
       if (textureCount === 0) throw new Error(`模型未声明贴图：${url.pathname}。`)
 
       await this.loadOptionalModelData(setting, url, signal)
+      this.pointerLook = new PointerLook(model)
       const breath = CubismFramework.getIdManager().getId('ParamBreath')
       if (model.getParameterIndex(breath) < model.getParameterCount()) this.breath = breath
       this.blink = setting.getEyeBlinkParameterCount() ? CubismEyeBlink.create(setting) : undefined
+      for (const name of this.manifest.decorativeDrawables ?? []) {
+        const index = model.getDrawableIndex(CubismFramework.getIdManager().getId(name))
+        if (index >= 0) this.decorativeDrawables.add(index)
+      }
       const hits = this.manifest.hitAreas
       for (let index = 0; index < setting.getHitAreasCount(); index++) {
         const id = setting.getHitAreaId(index)

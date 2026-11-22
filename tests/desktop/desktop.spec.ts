@@ -5,6 +5,7 @@ import { setTimeout as delay } from 'node:timers/promises'
 import type { ElectronApplication, Page } from '@playwright/test'
 import type { AppSnapshot, Session } from '../../src/contracts/types'
 import { shortPreset } from '../fixtures'
+import { modelPixels } from './model-pixels'
 import { command, expect, screenshot, snapshot, startFromControl, test, view } from './app'
 
 async function openControl(app: ElectronApplication, pet: Page) {
@@ -375,7 +376,7 @@ test('从界面保存 11 秒预设，无操作自动成功，结算横幅释放�
   pet.on('pageerror', (error) => errors.push(error.message))
   await startFromControl(control, control.getByRole('button', { name: '出击', exact: true }))
   await expect(pet.getByRole('progressbar', { name: '整局进度' })).toBeVisible()
-  await expect(pet.getByRole('button', { name: '释放绝招' })).toBeVisible()
+  await expect(pet.getByRole('progressbar', { name: '战斗进度' })).toBeVisible({ timeout: 12_000 })
   await screenshot(pet, info, 'battle')
 
   const finished = await sessionAt(pet, 'completed', 13_000)
@@ -461,7 +462,9 @@ test('实停 61 秒冻结用时和血条，隐藏和关窗仍计时，下局应�
   const input = shortPreset({ customSeconds: [1, 1, 1, 1, 30, 1, 1, 1, 1, 1, 1] })
   await command(control, { type: 'savePreset', preset: input })
   await startFromControl(control, control.getByRole('button', { name: '出击', exact: true }))
-  await pet.getByRole('button', { name: '释放绝招' }).click()
+  await expect(pet.getByRole('progressbar', { name: '战斗进度' })).toBeVisible({ timeout: 12_000 })
+  const { solid } = await modelPixels(pet)
+  await pet.mouse.dblclick(solid.x, solid.y)
   await expect.poll(async () => (await snapshot(pet)).session?.usedUltimates.length).toBe(1)
   const first = await sessionAt(pet, 'running')
   expect(first.usedUltimates).toEqual([first.timeline.phases[4].id])
@@ -483,7 +486,6 @@ test('实停 61 秒冻结用时和血条，隐藏和关窗仍计时，下局应�
   expect(actualPausedMs).toBeGreaterThanOrEqual(60_000)
   await expect.poll(async () => (await snapshot(pet)).session).toEqual(paused)
   expect(await bar.getAttribute('style')).toBe(progress)
-  await expect(pet.getByRole('button', { name: '释放绝招' })).toHaveCount(0)
   await writeFile(
     info.outputPath('pause-observation.json'),
     JSON.stringify({ actualPausedMs, elapsedMs: paused.elapsedMs, health: progress }, null, 2),
@@ -521,7 +523,9 @@ test('强杀后暂停恢复，保存过的绝招与设置保留，可放弃本�
   })
   await preferences(control, { scale: 150, sfxVolume: 65, statusBar: 'detailed' })
   await startFromControl(control, control.getByRole('button', { name: '出击', exact: true }))
-  await pet.getByRole('button', { name: '释放绝招' }).click()
+  const active = await openControl(app, pet)
+  await expect(active.getByText(/Alt\+U/)).toBeVisible({ timeout: 15_000 })
+  await active.keyboard.press('Alt+u')
   await expect.poll(async () => (await snapshot(pet)).session?.usedUltimates.length).toBe(1)
   const before = await sessionAt(pet, 'running')
   expect(before.usedUltimates).toHaveLength(1)
@@ -549,7 +553,6 @@ test('强杀后暂停恢复，保存过的绝招与设置保留，可放弃本�
 
   await restored.getByRole('button', { name: '继续渡夜' }).click()
   await sessionAt(pet, 'running')
-  await expect(pet.getByRole('button', { name: '释放绝招' })).toHaveCount(0)
   await expect(
     command(pet, { type: 'ultimate', sessionId: saved.id, phaseId: saved.usedUltimates[0] }),
   ).rejects.toThrow(/已发动/)

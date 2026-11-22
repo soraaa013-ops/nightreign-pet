@@ -21,6 +21,7 @@ export interface CubismManifest {
   model: string
   actions: Partial<Record<CharacterAction, ActionMapping>>
   hitAreas?: string[]
+  decorativeDrawables?: string[]
   scale?: number
   offsetX?: number
   offsetY?: number
@@ -83,11 +84,13 @@ function isManifest(value: unknown): value is Manifest {
     )
   )
     return false
-  if (
-    value.hitAreas !== undefined &&
-    (!Array.isArray(value.hitAreas) || !value.hitAreas.every((name) => typeof name === 'string'))
-  )
-    return false
+  for (const names of [value.hitAreas, value.decorativeDrawables]) {
+    if (
+      names !== undefined &&
+      (!Array.isArray(names) || !names.every((name) => typeof name === 'string'))
+    )
+      return false
+  }
   for (const position of [value.scale, value.offsetX, value.offsetY]) {
     if (position !== undefined && (typeof position !== 'number' || !Number.isFinite(position)))
       return false

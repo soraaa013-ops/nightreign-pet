@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test'
 
-export async function modelPixels(pet: Page, output: string) {
+export async function modelPixels(pet: Page, output?: string) {
   const png = await pet.screenshot({
     path: output,
     omitBackground: true,

@@ -16,12 +16,16 @@ enum class Control(val id: String, val title: String, val keys: List<Float>, val
     STEP("ParamStride", "交替侧步 / Sidestep", listOf(-1f, 0f, 1f), 0f, true),
     LEVEL("ParamBodyLevel", "屈膝与跃起 / Crouch and spring", listOf(-1f, 0f, 1f), 0f, true),
     ARM("ParamArmLift", "抬肘与扬琴 / Conduct", listOf(-1f, 0f, 1f), 0f, true),
-    SPIRIT("ParamSpirit", "召唤灵 / Spirit", listOf(0f, .45f, 1f), 0f);
+    SPIRIT("ParamSpirit", "召唤灵 / Spirit", listOf(0f, .45f, 1f), 0f),
+    MARCH("ParamImmortalMarch", "不死行军 / Immortal March", listOf(0f, .5f, 1f), 0f),
+    WAVE("ParamMarchWave", "行进波纹 / March wave", listOf(0f, .5f, 1f), 0f);
 
     fun parameter() = Parameter(id, title, keys.first(), keys.last(), neutral, blend = additive)
     fun axis() = KeyAxis(id, Floats.wrap(keys.toFloatArray()))
 }
 
+private val marchPoses = setOf("MarchGather", "MarchCry")
+val marchParticles = setOf("MarchWave", "MarchSparks")
 private val lids = setOf("LidLeft", "LidRight")
 private val handsAndLyre = setOf("PluckArm", "Lyre", "HoldArm")
 private val footLayers = setOf("LeftFoot", "RightFoot")
@@ -98,6 +102,8 @@ private fun blink(p: Point, openness: Float, eyes: List<Eye>): Point {
 }
 
 private fun geometryAxes(role: String): List<Control> = when (role) {
+    in marchParticles -> listOf(Control.WAVE)
+    in marchPoses -> listOf(Control.TILT, Control.WIND)
     "Spirit" -> listOf(Control.SPIRIT)
     "Head" -> listOf(Control.TILT, Control.EYES, Control.GAZE)
     "FrontHair", in lids -> listOf(Control.TILT)
@@ -148,6 +154,22 @@ private class Binding(val marks: Landmarks, val hairEnd: Float) {
                 marks.neck.y + (p.y - marks.neck.y) * contraction + hidden * 112f)
         }
         return when (role) {
+            in marchParticles -> {
+                val wave = value(Control.WAVE)
+                val ground = role == "MarchWave"
+                val pivot = if (ground) marks.feet else marks.neck
+                val radial = if (ground) .17f + .83f * wave else .70f + .30f * wave
+                Point(pivot.x + (p.x - pivot.x) * radial, pivot.y + (p.y - pivot.y) * radial -
+                    (if (ground) 0f else 83f * wave))
+            }
+            in marchPoses -> {
+                // Ease head rotation into the collar. Loose hair and sleeves travel furthest at the edges.
+                val crown = 1f - smooth(marks.neck.y - 35f, marks.neck.y + 112f, p.y)
+                val tilted = rotate(p, marks.neck, tilt * crown * .76f)
+                val side = (p.x - marks.neck.x)
+                val loose = smooth(94f, 204f, abs(side)) * (1f - smooth(marks.hips.y + 70f, marks.feet.y - 140f, p.y))
+                tilted.shift(wind * loose * 23f, wind * loose * side * .066f)
+            }
             "Head" -> {
                 val open = value(Control.EYES)
                 val looking = gaze(p, value(Control.GAZE) * open, marks.eyes)
@@ -218,6 +240,22 @@ private class Binding(val marks: Landmarks, val hairEnd: Float) {
                 p.shift(-amount * (p.x - marks.hips.x) * .027f * lower * (1f - planted), -amount * fold * (1f - planted))
             }
             Control.ARM -> when (role) {
+                "MarchCry" -> {
+                    // Follow the sloping sleeves from each shoulder; the dress and face stay put.
+                    val side = if (p.x < marks.neck.x) -1f else 1f
+                    val shoulder = marks.neck.shift(side * 91f, 110f)
+                    val hand = marks.neck.shift(side * 339f, 245f)
+                    val reach = smooth(20f, 220f, side * (p.x - shoulder.x))
+                    val sleeve = 1f - smooth(32f, 78f, segmentDistance(p, shoulder, hand))
+                    rotate(p, shoulder, -side * amount * 17f * reach * sleeve)
+                }
+                "MarchGather" -> {
+                    // Keep fingertips against the face while elbows fold and sleeves draw inward.
+                    val side = if (p.x < marks.neck.x) -1f else 1f
+                    val elbow = marks.neck.shift(side * 135f, 244f)
+                    val sleeve = 1f - smooth(18f, 80f, distance(p, elbow))
+                    p.shift(-side * amount * 11f * sleeve, -amount * 13f * sleeve)
+                }
                 "PluckArm" -> playingArm(p, 0f, 0f, amount)
                 "HoldArm" -> supportingArm(p, 0f, amount)
                 "Lyre" -> rotate(p, marks.holdShoulder, -amount * 18f)
@@ -259,14 +297,14 @@ private class Binding(val marks: Landmarks, val hairEnd: Float) {
     }
 
     fun shapes(layer: Layer, points: List<Point>, order: Float): List<BlendBinding<MeshShape>> {
-        if (layer.role == "Spirit") return emptyList()
+        if (layer.role == "Spirit" || layer.role in marchParticles) return emptyList()
         val controls = buildList {
             addAll(listOf(Control.BREATH, Control.LEAN, Control.STEP, Control.LEVEL))
-            if (layer.role in handsAndLyre) add(Control.ARM)
-            if (layer.role == "Head" || layer.role == "FrontHair" || layer.role == "BackHair" || layer.role in lids) add(Control.NOD)
+            if (layer.role in handsAndLyre || layer.role in marchPoses) add(Control.ARM)
+            if (layer.role == "Head" || layer.role == "FrontHair" || layer.role == "BackHair" || layer.role in lids || layer.role in marchPoses) add(Control.NOD)
             if (layer.role == "Lyre") add(Control.RESONANCE)
         }
-        val restOpacity = if (layer.role in lids) 0f else 1f
+        val restOpacity = if (layer.role in lids || layer.role in marchPoses) 0f else 1f
         return controls.map { control ->
             val forms = control.keys.map { value ->
                 if (value == 0f) null else MeshShape(offsets(points) { bodyPose(layer.role, it, control, value) }, order, restOpacity, Rgb.White, Rgb.Black)
@@ -291,24 +329,47 @@ private fun opacity(control: Control, levels: List<Pair<Float, Float>>): KeyGrid
         levels.mapIndexed { index, (_, opacity) -> KeyCell(Ints.values(index), ChannelValue.Scalar(opacity)) })
 }
 
-fun makeRig(art: Artwork): RigIR {
+private fun waveOpacity(): KeyGrid<ChannelValue> {
+    val cast = listOf(0f to 0f, .70f to 0f, .76f to 1f, 1f to 1f)
+    val wave = listOf(0f to 0f, .08f to 1f, .27f to .95f, .62f to .63f, .92f to .14f, 1f to 0f)
+    val axes = listOf(Control.MARCH to cast, Control.WAVE to wave).map { (control, keys) ->
+        KeyAxis(control.id, Floats.wrap(keys.map { it.first }.toFloatArray()))
+    }
+    val cells = cast.flatMapIndexed { i, (_, visible) -> wave.mapIndexed { j, (_, opacity) ->
+        KeyCell<ChannelValue>(Ints.values(i, j), ChannelValue.Scalar(visible * opacity))
+    } }
+    return KeyGrid(axes, cells)
+}
+
+fun makeRig(drawing: Artwork): RigIR {
+    val art = drawing.copy(layers = drawing.layers + marchEffects(drawing.landmarks))
     require(art.width == 1000 && art.height == 1120) { "The rig uses a 1000 × 1120 drawing" }
     val atlas = Atlas(art.layers)
     val binding = Binding(art.landmarks, art.layers.firstOrNull { it.role == "BackHair" }?.let { (it.y + it.h).toFloat() } ?: art.landmarks.feet.y)
     val meshes = art.layers.map { layer ->
         val surface = makeSurface(layer, atlas, art.landmarks)
         val order = (500 + layer.z * 10).toFloat()
-        Mesh(layer.meshId, layer.id, parent = null, geometry = surface.geometry,
+        val casting = layer.role in marchPoses || layer.role in marchParticles
+        Mesh(layer.meshId, layer.id, parent = if (casting) null else "RotationPlayingPose", geometry = surface.geometry,
             offsets = binding.localKeys(layer.role, surface.points), page = 0, tile = layer.tileId, drawOrder = order,
             shapes = binding.shapes(layer, surface.points, order),
             channels = when (layer.role) {
+                in marchParticles -> mapOf(Channel.OPACITY to waveOpacity())
+                "MarchGather" -> mapOf(Channel.OPACITY to opacity(Control.MARCH, listOf(0f to 0f, .2f to 0f,
+                    .25f to 1f, .71f to 1f, .76f to 0f, 1f to 0f)))
+                "MarchCry" -> mapOf(Channel.OPACITY to opacity(Control.MARCH, listOf(0f to 0f, .71f to 0f, .76f to 1f, 1f to 1f)))
                 // Only expose the painted lash once the iris has collapsed to a thin line.
                 in lids -> mapOf(Channel.OPACITY to opacity(Control.EYES, listOf(0f to 1f, .025f to 1f, .1f to 0f, 1f to 0f)))
                 "Spirit" -> mapOf(Channel.OPACITY to opacity(Control.SPIRIT, listOf(0f to 0f, .1f to 0f, .45f to .64f, .78f to .94f, 1f to 1f)))
                 else -> emptyMap()
             })
     }
-    val part = Part("PartRevenant", "Revenant", meshes.map { ChildRef.MeshRef(it.id) })
+    val (cast, ordinary) = meshes.partition { it.name in marchPoses || it.name in marchParticles }
+    require(cast.map { it.name }.toSet() == marchPoses + marchParticles)
+    val parts = listOf(
+        Part("PartRevenant", "Revenant", ordinary.map { ChildRef.MeshRef(it.id) }),
+        Part("PartImmortalMarch", "Immortal March", cast.map { ChildRef.MeshRef(it.id) }),
+    )
     val hasSpirit = art.layers.any { it.role == "Spirit" }
     val controls = Control.entries.filter { it != Control.SPIRIT || hasSpirit }
     return RigIR(
@@ -316,7 +377,10 @@ fun makeRig(art: Artwork): RigIR {
         parameters = controls.map { it.parameter() },
         parameterTree = controls.map { ParameterNode.Param(it.id) },
         parameterRoles = listOf(ParameterRole("EyeBlink", listOf(Control.EYES.id))),
-        parts = listOf(part), rootChildren = listOf(ChildRef.PartRef(part.id)),
+        deformers = listOf(Deformer.Rotation("RotationPlayingPose", "Playing pose", null, "PartRevenant", 0f,
+            KeyGrid.single(Pivot(0f, 0f, 0f, 1f)), channels = mapOf(Channel.OPACITY to
+                opacity(Control.MARCH, listOf(0f to 1f, .2f to 1f, .25f to 0f, 1f to 0f))))),
+        parts = parts, rootChildren = parts.map { ChildRef.PartRef(it.id) },
         meshes = meshes, renderRoot = RenderGroup(null, 500, meshes.map { RenderMesh(it.id) }), textures = atlas.textures,
         authoring = Authoring(sources = listOf(SourceFile("Sheet", "Revenant painted parts", null, "png",
             art.layers.map { SourceLayer(it.id, it.id, "", it.x, it.y, it.w, it.h, true) }))), clips = motions(hasSpirit),

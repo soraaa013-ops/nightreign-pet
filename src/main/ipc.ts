@@ -9,6 +9,7 @@ const commands: Record<View, readonly Command['type'][]> = {
   control: [
     'start',
     'pause',
+    'ultimate',
     'resume',
     'abandon',
     'dismissResult',

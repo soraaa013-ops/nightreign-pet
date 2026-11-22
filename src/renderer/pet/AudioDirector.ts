@@ -20,22 +20,31 @@ export class AudioDirector {
       this.master.connect(this.context.destination)
     }
     if (this.context.state === 'suspended') void this.context.resume()
-    const notes =
-      kind === 'victory'
+    const march = kind === 'ultimate'
+    const notes = march
+      ? [146.83, 220]
+      : kind === 'victory'
         ? [196, 246.94, 293.66, 392]
-        : kind === 'ultimate'
-          ? [146.83, 220, 293.66]
-          : [220, 293.66]
+        : [220, 293.66]
     notes.forEach((hz, i) => {
       const context = this.context!
       const oscillator = context.createOscillator(),
         gain = context.createGain()
-      const start = context.currentTime + i * 0.14
+      const start = context.currentTime + (march ? 0 : i * 0.14)
       oscillator.type = 'sine'
-      oscillator.frequency.value = hz
+      oscillator.frequency.setValueAtTime(hz, start)
       gain.gain.setValueAtTime(0, start)
-      gain.gain.linearRampToValueAtTime(0.1, start + 0.025)
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.8)
+      if (march) {
+        // Both voices rise together as her shoulders open, then decay with the ground wave.
+        oscillator.frequency.exponentialRampToValueAtTime(hz * 1.06, start + 1.3)
+        oscillator.frequency.exponentialRampToValueAtTime(hz * 1.5, start + 1.55)
+        gain.gain.linearRampToValueAtTime(0.017, start + 1.3)
+        gain.gain.linearRampToValueAtTime(0.055, start + 1.55)
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 2.65)
+      } else {
+        gain.gain.linearRampToValueAtTime(0.1, start + 0.025)
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.8)
+      }
       oscillator.connect(gain)
       gain.connect(this.master!)
       this.nodes.add(oscillator)
@@ -45,7 +54,7 @@ export class AudioDirector {
         gain.disconnect()
       }
       oscillator.start(start)
-      oscillator.stop(start + 0.9)
+      oscillator.stop(start + (march ? 2.7 : 0.9))
     })
   }
   stop() {

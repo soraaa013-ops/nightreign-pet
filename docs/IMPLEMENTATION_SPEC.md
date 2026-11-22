@@ -62,7 +62,7 @@ Electron、TypeScript strict、React、electron-vite、electron-builder；Live2D
 
 角色必须是复仇者小蜗。真实模型文件、作者、来源、使用条件、动作清单记录在CHARACTER_ASSETS.md。只找到截图、MMD或通用Live2D样例不算完成。若模型缺失，应用展示清晰的资源未就绪状态并保留其他功能，不用别的角色冒充；该情况必须列入交付阻塞项。
 
-Live2DAdapter独立管理load/dispose、rAF、尺寸、DPR、WebGL恢复与hitTest。动作语义为idle/touch/battle/ultimate/victory。夜雨用单独Canvas2D，不截获输入。SDK Framework、Core与模型版本作为兼容组合核验；资源随包本地加载。
+Live2DAdapter独立管理load/dispose、rAF、尺寸、DPR、WebGL恢复与hitTest。动作语义为 idle、touch、battle、battle2、nightlord、ultimate 与 victory。待机与探索时，渲染器把鼠标在画布中的位置映射到目光、侧倾与俯仰。每帧在动作参数保存后叠加跟随，以便移开鼠标时恢复当前编排。双击由系统点击计数识别，两次都需命中人物。特效网格不参与命中判定。夜雨用单独Canvas2D，不截获输入。SDK Framework、Core与模型版本作为兼容组合核验；资源随包本地加载。
 
 ## 7 界面与设置
 

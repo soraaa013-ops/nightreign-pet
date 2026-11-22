@@ -3,7 +3,6 @@ import io.github.psd2live.format.compile.ExportOptions
 import io.github.psd2live.format.compile.ExportTarget
 import io.github.psd2live.format.compile.Feature
 import io.github.psd2live.format.compile.Handling
-import io.github.psd2live.format.model.Clip
 import io.github.psd2live.format.model.RigIR
 import io.github.psd2live.targets.cubism.Cmo3Target
 import io.github.psd2live.targets.cubism.Moc3Target
@@ -24,15 +23,17 @@ private fun export(target: ExportTarget, rig: RigIR, folder: Path) {
     println("${target.id}: ${report.files.joinToString()}")
 }
 
-private fun manifest(clips: List<Clip>) = buildJsonObject {
+private fun manifest(rig: RigIR) = buildJsonObject {
     put("version", 1)
     put("status", "available")
     put("model", "revenant.model3.json")
     put("scale", .94)
     put("offsetY", -.025)
+    val decoration = rig.meshes.filter { it.name in marchParticles }
+    if (decoration.isNotEmpty()) putJsonArray("decorativeDrawables") { decoration.forEach { add(it.id) } }
     putJsonObject("actions") {
         for (action in Action.entries) putJsonObject(action.id) {
-            require(clips.count { it.group == action.group } > 1)
+            require(rig.clips.count { it.group == action.group } > 1)
             putJsonObject("motion") {
                 put("group", action.group)
                 put("index", 0)
@@ -52,5 +53,5 @@ fun main(args: Array<String>) {
     export(Cmo3Target(), rig, editor)
     verifyEditorProjects(editor, rig)
     val json = Json { prettyPrint = true; prettyPrintIndent = "  " }
-    Files.writeString(runtime.resolve("manifest.json"), json.encodeToString(JsonObject.serializer(), manifest(rig.clips)) + "\n")
+    Files.writeString(runtime.resolve("manifest.json"), json.encodeToString(JsonObject.serializer(), manifest(rig)) + "\n")
 }

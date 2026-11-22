@@ -29,6 +29,8 @@ export function PetWindow() {
   const [banner, setBanner] = useState<{ text: string; victory?: boolean } | null>(null)
   const bannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const previousHit = useRef<boolean | null>(null)
+  const releasedCharacter = useRef(false)
+  const firstBattleTap = useRef(false)
   const drag = useRef<{
     pointerId: number
     x: number
@@ -102,6 +104,7 @@ export function PetWindow() {
     if (!snapshot) return
     audio.current?.configure(snapshot.preferences)
     if (snapshot.session?.status === 'paused') audio.current?.stop()
+    if (snapshot.preferences.clickThrough) model.current?.clearPointer(true)
     model.current?.setVisible(snapshot.petVisible)
     model.current?.setPaused(snapshot.session?.status === 'paused')
     model.current?.setReducedMotion(
@@ -119,6 +122,14 @@ export function PetWindow() {
       id === 'night1' || id === 'night2' || id === 'nightlord' ? stages[id] : 'idle',
     )
   }, [phase?.id])
+  const canCast =
+    session?.status === 'running' &&
+    phase?.kind === 'battle' &&
+    !session.usedUltimates.includes(phase.id)
+  useEffect(() => {
+    firstBattleTap.current = false
+    releasedCharacter.current = false
+  }, [session?.id, phase?.id, canCast, snapshot?.preferences.clickThrough])
   const open = () => send({ type: 'openControl', page: 'prepare' }).catch(() => {})
   const previewHit = (x: number, y: number) =>
     modelStatus.state !== 'ready' && previewImage.current
@@ -152,11 +163,16 @@ export function PetWindow() {
     }
     return current
   }
-  const onTouch = () => {
+  const onTouch = (clickCount: number) => {
     if (session?.status === 'paused') return
     if (session?.status === 'running' && phase?.kind === 'battle') {
-      if (!session.usedUltimates.includes(phase.id))
+      // Chromium's click count follows the system's double-click timing and distance.
+      if (canCast && clickCount === 2 && firstBattleTap.current) {
+        firstBattleTap.current = false
         void send({ type: 'ultimate', sessionId: session.id, phaseId: phase.id }).catch(() => {})
+      } else {
+        firstBattleTap.current = canCast && clickCount === 1
+      }
       return
     }
     model.current?.play('touch')
@@ -179,12 +195,23 @@ export function PetWindow() {
       className="pet-scene"
       onDragStart={(event) => event.preventDefault()}
       onContextMenu={(e) => {
+        firstBattleTap.current = false
         e.preventDefault()
         send({ type: 'contextMenu' }).catch(() => {})
       }}
       onPointerMove={(e) => {
         const d = drag.current
-        if (!d) hover(e.clientX, e.clientY, e.target)
+        if (!d) {
+          hover(e.clientX, e.clientY, e.target)
+          if (
+            e.pointerType === 'mouse' &&
+            e.buttons === 0 &&
+            !snapshot?.preferences.clickThrough &&
+            !(e.target as HTMLElement).closest('[data-pet-control]')
+          )
+            model.current?.lookAt(e.clientX, e.clientY)
+          else model.current?.clearPointer()
+        }
         if (d && e.pointerId === d.pointerId) {
           if (Math.hypot(e.screenX - d.startX, e.screenY - d.startY) > 5) d.moved = true
           if (d.moved && !snapshot?.preferences.positionLocked) {
@@ -198,14 +225,19 @@ export function PetWindow() {
         }
       }}
       onPointerDown={(e) => {
+        model.current?.clearPointer()
+        releasedCharacter.current = false
         if (
+          snapshot?.preferences.clickThrough ||
           e.button !== 0 ||
           !e.isPrimary ||
           drag.current ||
           (e.target as HTMLElement).closest('[data-pet-control]') ||
           (!model.current?.hitTest(e.clientX, e.clientY) && !previewHit(e.clientX, e.clientY))
-        )
+        ) {
+          firstBattleTap.current = false
           return
+        }
         e.preventDefault()
         previousHit.current = true
         void window.nightreign.command({ type: 'hitTest', hit: true }).catch(() => {})
@@ -225,17 +257,35 @@ export function PetWindow() {
         if (e.currentTarget.hasPointerCapture(e.pointerId))
           e.currentTarget.releasePointerCapture(e.pointerId)
         hover(e.clientX, e.clientY, e.target)
-        if (d && !d.moved) onTouch()
+        releasedCharacter.current =
+          !!d &&
+          !d.moved &&
+          !!(model.current?.hitTest(e.clientX, e.clientY) || previewHit(e.clientX, e.clientY))
+        if (!releasedCharacter.current) firstBattleTap.current = false
+      }}
+      onClick={(e) => {
+        if (
+          !releasedCharacter.current ||
+          !e.detail ||
+          (e.target as HTMLElement).closest('[data-pet-control]')
+        )
+          return
+        releasedCharacter.current = false
+        onTouch(e.detail)
       }}
       onLostPointerCapture={(e) => {
-        if (drag.current?.pointerId === e.pointerId) finishDrag()
+        if (drag.current?.pointerId !== e.pointerId) return
+        finishDrag()
+        firstBattleTap.current = false
       }}
       onPointerCancel={(e) => {
         if (drag.current?.pointerId !== e.pointerId) return
         finishDrag()
+        firstBattleTap.current = false
         previousHit.current = null
       }}
       onPointerLeave={() => {
+        model.current?.clearPointer()
         if (!drag.current) {
           previousHit.current = false
           window.nightreign.command({ type: 'hitTest', hit: false }).catch(() => {})
@@ -317,19 +367,6 @@ export function PetWindow() {
       {banner && (
         <div className={`pet-stage ${banner.victory ? 'victory' : ''}`}>{banner.text}</div>
       )}
-      {session?.status === 'running' &&
-        phase?.kind === 'battle' &&
-        !session.usedUltimates.includes(phase.id) && (
-          <button
-            className="pet-ultimate"
-            data-pet-control
-            onClick={() =>
-              send({ type: 'ultimate', sessionId: session.id, phaseId: phase.id }).catch(() => {})
-            }
-          >
-            释放绝招
-          </button>
-        )}
       {snapshot?.preferences.statusBar !== 'hidden' && (
         <div
           className="pet-status"
