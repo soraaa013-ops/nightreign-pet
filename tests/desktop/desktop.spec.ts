@@ -450,7 +450,7 @@ test('缩圈倒计时有明确含义，圈内探索保持已收紧的光环', as
   ).toBeVisible()
   expect(await scale()).toBeLessThanOrEqual(inner + 0.01)
   await expect(pet.locator('.pet-status').getByText('第二天探索', { exact: true })).toBeVisible()
-  expect(await scale()).toBeCloseTo(full)
+  await expect.poll(scale).toBeCloseTo(full)
 })
 
 test('实停 61 秒冻结用时和血条，隐藏和关窗仍计时，下局应用新预设', async ({ launchApp }, info) => {
