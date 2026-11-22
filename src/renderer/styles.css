@@ -768,7 +768,7 @@ body[data-view='pet'] #root {
 .pet-scene {
   position: relative;
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr);
   width: 100vw;
   height: 100vh;
   overflow: hidden;
@@ -791,10 +791,11 @@ body[data-view='pet'] #root {
 .pet-halo {
   position: absolute;
   grid-area: 1 / 1;
-  width: 84%;
-  height: 66%;
-  left: 8%;
-  bottom: 4%;
+  width: 49%;
+  height: 8%;
+  left: 25.5%;
+  bottom: 15%;
+  opacity: 0;
   border: 1px solid #9aaede66;
   border-radius: 50%;
   box-shadow:
@@ -803,36 +804,19 @@ body[data-view='pet'] #root {
   pointer-events: none;
   transition: transform 240ms linear;
 }
+.pet-halo[data-active='true'] {
+  opacity: 0.65;
+}
 .pet-halo[data-shrinking='true'] {
   border-color: #b5c6f0b0;
   box-shadow:
     inset 0 0 24px #7890d32a,
     0 0 20px #7890d32a;
 }
-.pet-status {
-  position: relative;
-  grid-area: 2 / 1;
-  min-width: 0;
-  margin: 0 8px 6px;
-  background: #0c1420ed;
-  border: 1px solid #c5aa734d;
-  padding: 8px 10px;
-  border-radius: 5px;
-  cursor: pointer;
-  color: #e3d5ba;
-}
-.pet-status:focus-visible {
-  outline: 2px solid #d6b979;
-  outline-offset: -2px;
-}
-.pet-ready {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 11px;
-}
-.pet-ready > span {
-  color: #a9b7ce;
+.pet-scene:not([data-dial='hidden']) .pet-model {
+  width: 84%;
+  height: 80%;
+  place-self: center;
 }
 .session-progress {
   display: grid;
@@ -903,12 +887,6 @@ body[data-view='pet'] #root {
   line-height: 1.3;
   font-variant-numeric: tabular-nums;
 }
-.pet-status small[role='alert'] {
-  display: block;
-  margin-top: 5px;
-  font-size: 10px;
-  color: #efbcb3;
-}
 .panel-session-progress {
   padding: 18px 22px;
   margin-top: 16px;
@@ -932,28 +910,6 @@ body[data-view='pet'] #root {
   height: 5px;
 }
 @media (max-width: 210px) {
-  .pet-status {
-    margin: 0 4px 4px;
-    padding: 6px;
-  }
-  .session-progress {
-    gap: 4px;
-  }
-  .progress-heading,
-  .progress-caption {
-    gap: 3px;
-  }
-  .progress-heading strong {
-    font-size: 10px;
-  }
-  .progress-caption,
-  .progress-detail,
-  .pet-ready {
-    font-size: 9px;
-  }
-  .paused-label {
-    font-size: 8px;
-  }
   body[data-view='pet'] .pet-stage.victory {
     font-size: 14px;
     letter-spacing: 1px;

@@ -7,9 +7,9 @@
         "FadeOutTime": 0.16,
         "Loop": false,
         "AreBeziersRestricted": true,
-        "CurveCount": 16,
-        "TotalSegmentCount": 86,
-        "TotalPointCount": 274,
+        "CurveCount": 18,
+        "TotalSegmentCount": 88,
+        "TotalPointCount": 282,
         "UserDataCount": 0,
         "TotalUserDataSize": 0
     },
@@ -732,6 +732,36 @@
         {
             "Target": "Parameter",
             "Id": "ParamMarchWave",
+            "Segments": [
+                0.0,
+                0.0,
+                1,
+                0.75555557,
+                0.0,
+                1.5111111,
+                0.0,
+                2.2666667,
+                0.0
+            ]
+        },
+        {
+            "Target": "Parameter",
+            "Id": "ParamMarchReturn",
+            "Segments": [
+                0.0,
+                0.0,
+                1,
+                0.75555557,
+                0.0,
+                1.5111111,
+                0.0,
+                2.2666667,
+                0.0
+            ]
+        },
+        {
+            "Target": "Parameter",
+            "Id": "ParamMarchPosture",
             "Segments": [
                 0.0,
                 0.0,

@@ -18,7 +18,7 @@ const priorities: Record<CharacterAction, number> = {
   battle: 3,
   battle2: 3,
   nightlord: 3,
-  ultimate: 4,
+  ultimate: 6,
   victory: 5,
 }
 let frameworkUsers = 0
@@ -41,6 +41,13 @@ export class CubismRuntime extends CubismUserModel {
   private pointerLook?: PointerLook
   private activeAction: CharacterAction | undefined
   private baseAction: BaseAction = 'idle'
+  private queuedMarch = false
+  private queuedVictory = false
+  onMarchStart?: () => void
+
+  get marching(): boolean {
+    return this.activeAction === 'ultimate' || this.queuedMarch
+  }
   private expressionTime = 0
   private breathTime = 0
   private viewX = 1
@@ -86,6 +93,14 @@ export class CubismRuntime extends CubismUserModel {
   }
 
   play(action: CharacterAction): boolean {
+    if (action === 'ultimate' && this.activeAction === 'ultimate') {
+      this.queuedMarch = true
+      return true
+    }
+    if (action === 'victory' && this.activeAction === 'ultimate') {
+      this.queuedVictory = true
+      return true
+    }
     if (this.activeAction && priorities[this.activeAction] > priorities[action]) return false
     return this.startAction(action)
   }
@@ -114,6 +129,7 @@ export class CubismRuntime extends CubismUserModel {
     if (!definition) return action === 'idle' && Boolean(this.blink || this.breath)
     if (action !== 'idle') this.clearPointer(true)
     this.activeAction = action
+    if (action === 'ultimate') this.onMarchStart?.()
     const motion = definition.motions[definition.next]
     this.expressionTime = definition.expression && !motion ? 1.2 : 0
     if (motion) {
@@ -141,7 +157,14 @@ export class CubismRuntime extends CubismUserModel {
       if (this.activeAction !== undefined && this.activeAction !== 'idle')
         this._expressionManager.stopAllMotions()
       this.activeAction = undefined
-      if (!reducedMotion && this.actions.has(this.baseAction)) this.startAction(this.baseAction)
+      if (this.queuedVictory) {
+        this.queuedVictory = false
+        this.startAction('victory')
+      } else if (this.queuedMarch) {
+        this.queuedMarch = false
+        this.startAction('ultimate')
+      } else if (!reducedMotion && this.actions.has(this.baseAction))
+        this.startAction(this.baseAction)
     }
     if (!moving && !reducedMotion) this.blink?.updateParameters(model, elapsed)
     this._expressionManager.updateMotion(model, elapsed)

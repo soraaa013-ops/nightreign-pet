@@ -1,6 +1,7 @@
 // Run with Electron. This is a developer tool for placing the painted cutouts on the rig.
 const { app, BrowserWindow } = require('electron')
 const fs = require('node:fs/promises')
+const { execFileSync } = require('node:child_process')
 const path = require('node:path')
 
 const root = path.resolve(__dirname, '../../art/revenant')
@@ -8,7 +9,7 @@ const root = path.resolve(__dirname, '../../art/revenant')
 async function assemble() {
   const composition = JSON.parse(await fs.readFile(path.join(root, 'composition.json'), 'utf8'))
   const paintings = {}
-  for (const { painting = 'painted-parts.png' } of [...composition.layers, ...composition.march]) {
+  for (const { painting = 'painted-parts.png' } of composition.layers) {
     if (!(painting in paintings)) {
       paintings[painting] = (await fs.readFile(path.join(root, painting))).toString('base64')
     }
@@ -29,11 +30,12 @@ async function assemble() {
     path.resolve(root, '../../resources/character/preview/revenant-portrait.webp'),
     Buffer.from(result.portrait, 'base64'),
   )
+  execFileSync('python3', [path.join(__dirname, 'march-parts.py')])
   window.destroy()
 }
 
 async function rasterize(
-  { canvas: dimensions, layers, march, eyelids, spirit, landmarks },
+  { canvas: dimensions, layers, eyelids, spirit, landmarks },
   input,
   blink,
   spiritImage,
@@ -80,7 +82,7 @@ async function rasterize(
       clip,
       place: [x, y, width, height],
     },
-  ] of [...layers, ...march].entries()) {
+  ] of layers.entries()) {
     const cutout = surface(width, height)
     const ctx = cutout.getContext('2d', { willReadFrequently: true })
     ctx.imageSmoothingQuality = 'high'
@@ -104,7 +106,7 @@ async function rasterize(
       if (alpha < 96) pixels.data[i] = alpha * Math.max(0, (alpha - 32) / 64)
     }
     ctx.putImageData(pixels, 0, 0)
-    if (z < layers.length) combined.getContext('2d').drawImage(cutout, x, y)
+    combined.getContext('2d').drawImage(cutout, x, y)
     const file = `parts/${id}.png`
     images.push({ file, data: imageData(cutout) })
     layout.layers.push({ id, file, x, y, width, height, z: z + 1 })

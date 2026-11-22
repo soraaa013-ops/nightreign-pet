@@ -7,7 +7,7 @@ import { shortPreset } from '../fixtures'
 describe('IPC 指令结构', () => {
   test.each<Command>([
     { type: 'start', presetId: 'original-40' },
-    { type: 'ultimate', sessionId: 'session-1', phaseId: 'nightlord' },
+    { type: 'ultimate' },
     { type: 'openControl' },
     { type: 'openControl', page: 'settings' },
     { type: 'drag', dx: -0.5, dy: 4096 },

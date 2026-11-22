@@ -79,6 +79,27 @@ describe('IPC 路由', () => {
     expect(run.mock.calls).toEqual([[start.command], [drag.command]])
   })
 
+  test('没有渡夜也能从角色或准备页连续请求行军，重放同一请求只分发一次', async () => {
+    const { frame, invoke, run, snapshot } = createIpc()
+    const pet = frame('pet', 1)
+    const panel = frame('control', 2)
+    const command = { type: 'ultimate' }
+    for (const [sender, requestId] of [
+      [pet, 'first'],
+      [pet, 'first'],
+      [pet, 'second'],
+      [panel, 'third'],
+    ] as const) {
+      await expect(invoke('night:command', sender, { requestId, command })).resolves.toEqual(
+        snapshot,
+      )
+    }
+    expect(run.mock.calls).toEqual([[command], [command], [command]])
+    expect(() =>
+      invoke('night:command', frame('overlay', 3), { requestId: 'other', command }),
+    ).toThrow(/无法执行/)
+  })
+
   test('同一窗口的重复请求只执行一次，另一个窗口独立去重', async () => {
     const { frame, invoke, run, snapshot } = createIpc()
     const control = frame('control', 1)

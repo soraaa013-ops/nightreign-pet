@@ -30,7 +30,7 @@ if not display: raise RuntimeError('无法打开 X11 显示器')
 test.XTestFakeMotionEvent(display, -1, int(sys.argv[1]), int(sys.argv[2]), 0)
 x.XSync(display, 0)
 time.sleep(0.4)
-for pressed in (1, 0):
+for pressed in (1, 0) * int(sys.argv[3]):
     test.XTestFakeButtonEvent(display, 1, pressed, 0)
     x.XSync(display, 0)
     time.sleep(0.06)
@@ -47,6 +47,15 @@ try {
     env: { ...process.env, XDG_CONFIG_HOME: profile },
   })
   const view = (name) => app.windows().find((page) => page.url().includes('view=' + name))
+  await expect.poll(() => Boolean(view('pet') || view('consent')), { timeout: 20_000 }).toBe(true)
+  const consent = view('consent')
+  if (consent)
+    await consent
+      .getByRole('button', { name: '同意并进入', exact: true })
+      .click()
+      .catch((error) => {
+        if (!consent.isClosed()) throw error
+      })
   await expect.poll(() => Boolean(view('pet') && view('control'))).toBe(true)
   const pet = view('pet')
   await expect(pet.locator('.pet-model')).toBeVisible()
@@ -74,7 +83,7 @@ try {
   })
   const target = app.windows().find((page) => page.url().startsWith('data:text/html,'))
   const received = () => target.evaluate(() => window.points)
-  async function click({ x, y }) {
+  async function click({ x, y }, count = 1) {
     await app.evaluate(({ BrowserWindow }) =>
       BrowserWindow.getAllWindows()
         .find((win) => win.webContents.getURL().includes('view=pet'))
@@ -85,6 +94,7 @@ try {
       systemClick,
       String(bounds.x + Math.round(x)),
       String(bounds.y + Math.round(y)),
+      String(count),
     ])
   }
   const corner = { x: 15, y: 10 }
@@ -97,8 +107,18 @@ try {
   ]
   await expect.poll(received).toEqual(transparentHits)
   expect(view('control')).toBeUndefined()
-  await click(pixels.solid)
-  await expect.poll(() => Boolean(view('control'))).toBe(true)
+  let casts = 0
+  await pet.exposeFunction('observeMarch', () => {
+    casts++
+  })
+  await pet.evaluate(() =>
+    window.nightreign.onPresentation((event) => {
+      if (event.kind === 'ultimate') window.observeMarch()
+    }),
+  )
+  await click(pixels.solid, 2)
+  await expect.poll(() => casts).toBe(1)
+  expect(view('control')).toBeUndefined()
   expect(await received()).toEqual(transparentHits)
   console.log(JSON.stringify({ desktopReceived: transparentHits, characterReceived: pixels.solid }))
 } finally {

@@ -127,6 +127,8 @@ data class Surface(val points: List<Point>, val geometry: MeshGeometry)
 /** Keep triangles covering the silhouette. Extra samples around the eyes allow the curved lid to close. */
 fun makeSurface(layer: Layer, atlas: Atlas, landmarks: Landmarks): Surface {
     val detail = when (layer.role) {
+        in marchSleeves -> 8
+        in marchFingers, in marchPalms, in marchFace -> 6
         "Head" -> 16
         "Lyre" -> 6
         "PluckArm", "HoldArm" -> 9

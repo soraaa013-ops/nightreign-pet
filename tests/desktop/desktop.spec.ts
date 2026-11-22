@@ -5,7 +5,6 @@ import { setTimeout as delay } from 'node:timers/promises'
 import type { ElectronApplication, Page } from '@playwright/test'
 import type { AppSnapshot, Session } from '../../src/contracts/types'
 import { shortPreset } from '../fixtures'
-import { modelPixels } from './model-pixels'
 import { command, expect, screenshot, snapshot, startFromControl, test, view } from './app'
 
 async function openControl(app: ElectronApplication, pet: Page) {
@@ -233,6 +232,8 @@ test('回退立绘的透明区域不打开面板，拖动与点击分离，锁�
   await move()
   expect(await bounds()).toEqual(locked)
   await pet.mouse.click(coordinates.shape.x, coordinates.shape.y)
+  expect(app.windows()).toHaveLength(1)
+  await pet.locator('.pet-status').click()
   await expect(
     (await view(app, 'control')).getByRole('button', { name: '出击', exact: true }),
   ).toBeEnabled()
@@ -275,7 +276,7 @@ test('四页设置可由键盘操作，非法草稿被拒，局部默认及偏�
   await expect.poll(async () => (await snapshot(pet)).preferences.scale).toBe(200)
   await control.getByRole('switch', { name: '锁定位置' }).click()
   await expect(control.getByRole('switch', { name: '锁定位置' })).toBeChecked()
-  await control.getByRole('combobox', { name: '状态条' }).selectOption('hidden')
+  await control.getByRole('combobox', { name: '计时环' }).selectOption('hidden')
   await expect(pet.getByRole('button', { name: /等待出击/ })).toHaveCount(0)
   await control.getByRole('button', { name: '恢复本页默认' }).click()
   await expect(dirty).toBeVisible()
@@ -432,25 +433,25 @@ test('缩圈倒计时有明确含义，圈内探索保持已收紧的光环', as
     pet
       .locator('.pet-halo')
       .evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).a)
-  // Capture the full-size baseline before the clock starts moving the ring.
+  await preferences(control, { statusBar: 'detailed' })
   const full = await scale()
   expect(full).toBe(1)
   await startFromControl(control, control.getByRole('button', { name: '出击', exact: true }))
-  await expect(pet.locator('.pet-status').getByText('第一天探索', { exact: true })).toBeVisible()
+  await expect(pet.locator('.dial-readout').getByText('第一天探索', { exact: true })).toBeVisible()
   await expect(
-    pet.locator('.pet-status').getByText('第一天第一次缩圈', { exact: true }),
+    pet.locator('.dial-readout').getByText('第一天第一次缩圈', { exact: true }),
   ).toBeVisible()
   await expect.poll(scale).toBeLessThan(full - 0.05)
   await expect(
-    pet.locator('.pet-status').getByText('第一天圈内探索', { exact: true }),
+    pet.locator('.dial-readout').getByText('第一天圈内探索', { exact: true }),
   ).toBeVisible()
   const inner = await scale()
   expect(inner).toBeLessThan(full - 0.15)
   await expect(
-    pet.locator('.pet-status').getByText('第一天第二次缩圈', { exact: true }),
+    pet.locator('.dial-readout').getByText('第一天第二次缩圈', { exact: true }),
   ).toBeVisible()
   expect(await scale()).toBeLessThanOrEqual(inner + 0.01)
-  await expect(pet.locator('.pet-status').getByText('第二天探索', { exact: true })).toBeVisible()
+  await expect(pet.locator('.dial-readout').getByText('第二天探索', { exact: true })).toBeVisible()
   await expect.poll(scale).toBeCloseTo(full)
 })
 
@@ -463,19 +464,15 @@ test('实停 61 秒冻结用时和血条，隐藏和关窗仍计时，下局应�
   await command(control, { type: 'savePreset', preset: input })
   await startFromControl(control, control.getByRole('button', { name: '出击', exact: true }))
   await expect(pet.getByRole('progressbar', { name: '战斗进度' })).toBeVisible({ timeout: 12_000 })
-  const { solid } = await modelPixels(pet)
-  await pet.mouse.dblclick(solid.x, solid.y)
-  await expect.poll(async () => (await snapshot(pet)).session?.usedUltimates.length).toBe(1)
   const first = await sessionAt(pet, 'running')
-  expect(first.usedUltimates).toEqual([first.timeline.phases[4].id])
 
   control = await openControl(app, pet)
   await control.getByRole('button', { name: '暂停渡夜' }).click()
   const paused = await sessionAt(pet, 'paused')
-  const bar = pet.locator('.boss-health i')
+  const bar = pet.getByRole('progressbar', { name: '战斗进度' })
   await expect(pet.getByRole('button', { name: /已暂停/ })).toBeVisible()
   await expect(bar).toBeVisible()
-  const progress = await bar.getAttribute('style')
+  const progress = await bar.getAttribute('aria-valuenow')
   await command(control, {
     type: 'savePreset',
     preset: { ...input, customSeconds: Array<number>(11).fill(1) },
@@ -485,7 +482,7 @@ test('实停 61 秒冻结用时和血条，隐藏和关窗仍计时，下局应�
   const actualPausedMs = performance.now() - wallStart
   expect(actualPausedMs).toBeGreaterThanOrEqual(60_000)
   await expect.poll(async () => (await snapshot(pet)).session).toEqual(paused)
-  expect(await bar.getAttribute('style')).toBe(progress)
+  expect(await bar.getAttribute('aria-valuenow')).toBe(progress)
   await writeFile(
     info.outputPath('pause-observation.json'),
     JSON.stringify({ actualPausedMs, elapsedMs: paused.elapsedMs, health: progress }, null, 2),
@@ -512,7 +509,7 @@ test('实停 61 秒冻结用时和血条，隐藏和关窗仍计时，下局应�
   expect((await sessionAt(pet, 'running')).timeline.durationMs).toBe(11_000)
 })
 
-test('强杀后暂停恢复，保存过的绝招与设置保留，可放弃本次', async ({ launchApp }) => {
+test('强杀后暂停恢复，保留设置，可放弃本次', async ({ launchApp }) => {
   test.skip(process.platform === 'win32', '该用例以 Unix SIGKILL 模拟强制停止')
   let app = await launchApp()
   let pet = await view(app, 'pet')
@@ -523,12 +520,7 @@ test('强杀后暂停恢复，保存过的绝招与设置保留，可放弃本�
   })
   await preferences(control, { scale: 150, sfxVolume: 65, statusBar: 'detailed' })
   await startFromControl(control, control.getByRole('button', { name: '出击', exact: true }))
-  const active = await openControl(app, pet)
-  await expect(active.getByText(/Alt\+U/)).toBeVisible({ timeout: 15_000 })
-  await active.keyboard.press('Alt+u')
-  await expect.poll(async () => (await snapshot(pet)).session?.usedUltimates.length).toBe(1)
   const before = await sessionAt(pet, 'running')
-  expect(before.usedUltimates).toHaveLength(1)
 
   const child = app.process()
   const exit = once(child, 'exit')
@@ -553,9 +545,7 @@ test('强杀后暂停恢复，保存过的绝招与设置保留，可放弃本�
 
   await restored.getByRole('button', { name: '继续渡夜' }).click()
   await sessionAt(pet, 'running')
-  await expect(
-    command(pet, { type: 'ultimate', sessionId: saved.id, phaseId: saved.usedUltimates[0] }),
-  ).rejects.toThrow(/已发动/)
+  await command(pet, { type: 'ultimate' })
   await restored.getByRole('button', { name: '结束本次' }).click()
   await restored.getByRole('dialog').getByRole('button', { name: '结束渡夜' }).click()
   await expect.poll(async () => (await snapshot(pet)).session).toBeNull()

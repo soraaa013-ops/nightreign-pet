@@ -21,7 +21,7 @@ const nav: { id: Page; label: string; mark: string }[] = [
 const titles: Record<Page, [string, string]> = {
   prepare: ['出击准备', '选择渡夜时长，出击后自动计时。'],
   rhythm: ['渡夜节奏', '设置探索、缩圈和战斗时长，保存为预设。'],
-  pet: ['小蜗与桌面', '调整大小、状态条、位置与鼠标操作。'],
+  pet: ['小蜗与桌面', '调整大小、计时环、位置与鼠标操作。'],
   sound: ['声音与演出', '设置音量、缩圈提示音和视觉效果。'],
   system: ['操作与运行', '设置快捷键、开机启动和锁屏后的计时行为。'],
 }

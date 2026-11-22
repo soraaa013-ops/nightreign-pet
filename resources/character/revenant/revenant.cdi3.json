@@ -82,6 +82,16 @@
 			"Name": "不死行军 / Immortal March"
 		},
 		{
+			"Id": "ParamMarchReturn",
+			"GroupId": "",
+			"Name": "收势 / Recovery"
+		},
+		{
+			"Id": "ParamMarchPosture",
+			"GroupId": "",
+			"Name": "行军姿势 / Cast posture"
+		},
+		{
 			"Id": "ParamMarchWave",
 			"GroupId": "",
 			"Name": "行进波纹 / March wave"
@@ -128,20 +138,44 @@
 			"Name": "Head"
 		},
 		{
-			"Id": "ArtMarchGather",
-			"Name": "MarchGather"
-		},
-		{
-			"Id": "ArtMarchCry",
-			"Name": "MarchCry"
-		},
-		{
 			"Id": "ArtLidLeft",
 			"Name": "LidLeft"
 		},
 		{
 			"Id": "ArtLidRight",
 			"Name": "LidRight"
+		},
+		{
+			"Id": "ArtMarchSkull",
+			"Name": "MarchSkull"
+		},
+		{
+			"Id": "ArtMarchMouth",
+			"Name": "MarchMouth"
+		},
+		{
+			"Id": "ArtMarchSleeveL",
+			"Name": "MarchSleeveL"
+		},
+		{
+			"Id": "ArtMarchSleeveR",
+			"Name": "MarchSleeveR"
+		},
+		{
+			"Id": "ArtMarchFingersL",
+			"Name": "MarchFingersL"
+		},
+		{
+			"Id": "ArtMarchFingersR",
+			"Name": "MarchFingersR"
+		},
+		{
+			"Id": "ArtMarchPalmL",
+			"Name": "MarchPalmL"
+		},
+		{
+			"Id": "ArtMarchPalmR",
+			"Name": "MarchPalmR"
 		},
 		{
 			"Id": "ArtMarchWave",

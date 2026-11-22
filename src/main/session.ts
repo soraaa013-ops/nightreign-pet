@@ -68,10 +68,8 @@ export class SessionEngine {
         session?.status === 'running' &&
         this.current?.status === 'paused'
       ) {
-        const pause = { ...this.current, usedUltimates: session.usedUltimates }
-        await this.options.save(structuredClone(pause))
-        this.current = pause
-        session = pause
+        session = this.current
+        await this.options.save(structuredClone(session))
       }
       this.lastSaved = structuredClone(session)
       this.failedWrite = false
@@ -181,21 +179,6 @@ export class SessionEngine {
     this.anchor = this.options.now()
     this.interrupted = false
     this.phaseId = getPhase(next.timeline, next.elapsedMs)?.id
-  }
-
-  async ultimate(id: string, phaseId: string) {
-    const at = this.options.now()
-    await this.tick(at)
-    const session = this.expect(id, at, 'running')
-    const phase = getPhase(session.timeline, session.elapsedMs)
-    if (!phase || phase.kind !== 'battle' || phase.id !== phaseId)
-      throw new Error('当前阶段无法发动这场战斗的绝招。')
-    if (session.usedUltimates.includes(phaseId)) throw new Error('本场战斗已发动过绝招。')
-    session.usedUltimates.push(phaseId)
-    await this.persist(session)
-    this.current!.usedUltimates = session.usedUltimates
-    if (!this.interrupted && getPhase(session.timeline, this.snapshot()!.elapsedMs)?.id === phaseId)
-      this.event('ultimate', session, phaseId)
   }
 
   async abandon(id: string) {

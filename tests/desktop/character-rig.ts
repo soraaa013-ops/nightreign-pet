@@ -93,30 +93,131 @@ export async function inspectCharacterRig() {
       })
     }
 
-    function visibleMarchMeshes(cast: number, wave: number) {
+    function visibleMarchMeshes(cast: number, wave: number, returning = 0) {
       parameters.values.set(parameters.defaultValues)
       parameters.values[parameters.ids.indexOf('ParamImmortalMarch')] = cast
+      parameters.values[parameters.ids.indexOf('ParamMarchPosture')] = cast
+      parameters.values[parameters.ids.indexOf('ParamMarchReturn')] = returning
       parameters.values[parameters.ids.indexOf('ParamMarchWave')] = wave
       model!.update()
       return drawables.ids.filter((_, i) => drawables.opacities[i] > 0.01)
     }
-    function cryArmTravel() {
-      visibleMarchMeshes(1, 0)
-      const mesh = drawables.ids.indexOf('ArtMarchCry')
-      const arm = parameters.ids.indexOf('ParamArmLift')
-      parameters.values[arm] = -0.75
-      model!.update()
-      const folded = new Float32Array(drawables.vertexPositions[mesh])
-      parameters.values[arm] = 0.75
-      model!.update()
-      const open = drawables.vertexPositions[mesh]
-      let travel = 0
-      for (let i = 0; i < open.length; i += 2)
-        travel = Math.max(travel, Math.hypot(open[i] - folded[i], open[i + 1] - folded[i + 1]))
-      return travel * model!.canvasinfo.PixelsPerUnit
+    const sleeve = drawables.ids.indexOf('ArtMarchSleeveL')
+    const palm = drawables.ids.indexOf('ArtMarchPalmL')
+    function palmCentre(cast: number, returning = 0) {
+      visibleMarchMeshes(cast, 0, returning)
+      const vertices = drawables.vertexPositions[palm]
+      const centre = [0, 0]
+      for (let i = 0; i < vertices.length; i++) centre[i % 2] += vertices[i]
+      return centre.map((n) => (2 * n * model!.canvasinfo.PixelsPerUnit) / vertices.length)
     }
+    function travel(a: number[], b: number[]) {
+      return Math.hypot(a[0] - b[0], a[1] - b[1])
+    }
+    function dimensions(id: string) {
+      const points = drawables.vertexPositions[drawables.ids.indexOf(id)]
+      let left = Infinity,
+        right = -Infinity,
+        low = Infinity,
+        high = -Infinity,
+        x = 0,
+        y = 0
+      for (let i = 0; i < points.length; i += 2) {
+        left = Math.min(left, points[i])
+        right = Math.max(right, points[i])
+        low = Math.min(low, points[i + 1])
+        high = Math.max(high, points[i + 1])
+        x += points[i]
+        y += points[i + 1]
+      }
+      x *= 2 / points.length
+      y *= 2 / points.length
+      let radius = 0
+      for (let i = 0; i < points.length; i += 2)
+        radius = Math.max(radius, Math.hypot(points[i] - x, points[i + 1] - y))
+      const scale = model!.canvasinfo.PixelsPerUnit
+      return {
+        radius: radius * scale,
+        width: (right - left) * scale,
+        height: (high - low) * scale,
+        top: high * scale,
+      }
+    }
+    visibleMarchMeshes(0, 0)
+    const palms = ['ArtMarchPalmL', 'ArtMarchPalmR']
+    const restPalms = palms.map((id) => dimensions(id).radius)
+    const restMouth = dimensions('ArtMarchMouth')
+    const crown = dimensions('ArtHead').top
+    let maxPalmRatio = 0,
+      minPalmRatio = 1,
+      maxMouthHeightRatio = 0,
+      deepestBowPx = 0
+    let leastHeadOpacity = 1,
+      leastDressOpacity = 1,
+      biggestLimbStep = 0
+    for (const returning of [0, 1]) {
+      let previous = palmCentre(0, returning)
+      for (let i = 1; i <= 100; i++) {
+        const current = palmCentre(i / 100, returning)
+        if (i >= 65) {
+          for (const [side, id] of palms.entries()) {
+            const ratio = dimensions(id).radius / restPalms[side]
+            maxPalmRatio = Math.max(maxPalmRatio, ratio)
+            minPalmRatio = Math.min(minPalmRatio, ratio)
+          }
+          maxMouthHeightRatio = Math.max(
+            maxMouthHeightRatio,
+            dimensions('ArtMarchMouth').height / restMouth.height,
+          )
+        }
+        deepestBowPx = Math.max(deepestBowPx, crown - dimensions('ArtHead').top)
+        biggestLimbStep = Math.max(biggestLimbStep, travel(previous, current))
+        previous = current
+        leastHeadOpacity = Math.min(
+          leastHeadOpacity,
+          drawables.opacities[drawables.ids.indexOf('ArtHead')],
+        )
+        leastDressOpacity = Math.min(
+          leastDressOpacity,
+          drawables.opacities[drawables.ids.indexOf('ArtDress')],
+        )
+      }
+    }
+    for (const pitch of [-0.9, 0.9]) {
+      visibleMarchMeshes(1, 0.4)
+      for (const [id, value] of Object.entries({
+        ParamHeadPitch: pitch,
+        ParamHeadTilt: pitch * 0.24,
+        ParamBodyLean: pitch * 0.4,
+        ParamBreath: 0.7,
+      }))
+        parameters.values[parameters.ids.indexOf(id)] = value
+      model!.update()
+      maxMouthHeightRatio = Math.max(
+        maxMouthHeightRatio,
+        dimensions('ArtMarchMouth').height / restMouth.height,
+      )
+    }
+    function peakArm(returning: number) {
+      visibleMarchMeshes(1, 0, returning)
+      return new Float32Array(drawables.vertexPositions[sleeve])
+    }
+    const outward = peakArm(0),
+      inward = peakArm(1)
+    const peakSeamPx =
+      outward.reduce((n, v, i) => Math.max(n, Math.abs(v - inward[i])), 0) *
+      model!.canvasinfo.PixelsPerUnit
     const march = {
-      armTravelPx: cryArmTravel(),
+      maxPalmRatio,
+      minPalmRatio,
+      maxMouthHeightRatio,
+      deepestBowPx,
+      armTravelPx: travel(palmCentre(0.5), palmCentre(1)),
+      recoverySeparationPx: travel(palmCentre(0.5), palmCentre(0.5, 1)),
+      leastHeadOpacity,
+      leastDressOpacity,
+      biggestLimbStep,
+      peakSeamPx,
       neutral: visibleMarchMeshes(0, 0),
       gathered: visibleMarchMeshes(0.5, 0),
       cry: visibleMarchMeshes(1, 0),

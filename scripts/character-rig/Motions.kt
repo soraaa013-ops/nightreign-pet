@@ -60,7 +60,7 @@ private class Track(val keys: List<Key>) {
 
 private data class Note(val contact: Int, val strength: Double)
 private val controls = listOf(Control.LEAN, Control.STEP, Control.LEVEL, Control.ARM, Control.PLUCK,
-    Control.HARP, Control.TILT, Control.NOD, Control.GAZE, Control.EYES, Control.WIND, Control.HEM, Control.RESONANCE, Control.SPIRIT, Control.MARCH, Control.WAVE)
+    Control.HARP, Control.TILT, Control.NOD, Control.GAZE, Control.EYES, Control.WIND, Control.HEM, Control.RESONANCE, Control.SPIRIT, Control.MARCH, Control.WAVE, Control.RETURN)
 
 private class Performance(private val action: Action, private val name: String, private val frames: Int) {
     private val lanes = mutableMapOf<Control, MutableList<Key>>()
@@ -130,6 +130,7 @@ private class Performance(private val action: Action, private val name: String, 
             }
             tracks[Control.RESONANCE] = Track(listOf(0 to 0.0) + ring + (frames to 0.0))
         }
+        tracks[Control.CAST_BODY] = tracks.getValue(Control.MARCH)
         val curves = tracks.filterKeys { it != Control.SPIRIT || hasSpirit }.map { (control, track) -> track.curve(control) }
         return Clip(name, name, action.group, name, frames.toFloat() / FPS, FPS.toFloat(), false, .10f, .16f, curves)
     }
@@ -325,30 +326,30 @@ fun motions(hasSpirit: Boolean): List<Clip> {
 
     // Immortal March: fold toward the faceplate, reveal the spirit and cry out, then settle.
     scene(Action.ULTIMATE, "ultimate", 124) {
-        lane(Control.WAVE, 40 to .0, 45 to .20, 56 to .61, 77 to .96, 86 to 1.0, 115 to 1.0)
-        lane(Control.MARCH, 6 to .0, 11 to .50, 34 to .55, 39 to .64, 43 to .93, 48 to 1.0,
-            71 to 1.0, 80 to .91, 87 to .62, 96 to .50, 104 to .49, 111 to .0)
-        lane(eyes, 4 to -.40, 10 to -.65, 89 to -.36, 108 to .15)
-        lane(head, 12 to .16, 34 to .44, 40 to .38, 47 to -.36, 57 to -.23, 68 to -.28, 87 to .14, 105 to .23)
-        lane(nod, 14 to .63, 33 to .91, 40 to .78, 47 to -.98, 57 to -.68, 81 to -.55, 91 to .46, 106 to .33)
-        lane(weight, 18 to .25, 36 to .42, 42 to .19, 49 to -.57, 62 to -.35, 84 to -.19, 99 to .21, 111 to .10)
-        lane(height, 14 to -.48, 34 to -.83, 40 to -.92, 47 to .76, 56 to .44, 73 to .36, 89 to -.42, 101 to -.52, 113 to -.13)
-        lane(lyre, 7 to -.29, 15 to -.61, 96 to -.61, 111 to -.25)
-        lane(elbow, 8 to -.23, 18 to .27, 33 to .46, 38 to .32, 42 to -.79, 49 to .64,
-            55 to .84, 64 to .55, 77 to .44, 85 to -.54, 97 to -.24, 111 to -.12)
+        lane(Control.MARCH, 6 to .035, 15 to .21, 27 to .43, 33 to .50, 40 to .57, 45 to .63,
+            51 to .82, 59 to 1.0, 67 to 1.0, 76 to .89, 91 to .58, 106 to .32, 117 to .08)
+        lane(Control.RETURN, 59 to .0, 66 to 1.0, 119 to 1.0)
+        lane(Control.WAVE, 47 to .0, 54 to .22, 66 to .64, 81 to .95, 91 to 1.0, 116 to 1.0)
+        lane(eyes, 8 to -.29, 25 to -.48, 48 to -.16, 77 to .16)
+        lane(head, 16 to .11, 37 to .17, 53 to -.13, 70 to -.10, 94 to .10)
+        lane(nod, 12 to .18, 35 to .90, 43 to .91, 55 to -.78, 69 to -.57, 86 to .13, 104 to .27)
+        lane(weight, 22 to .18, 41 to .28, 60 to -.32, 81 to -.21, 103 to .12)
+        lane(height, 30 to -.29, 43 to -.43, 56 to .48, 69 to .26, 91 to -.22, 113 to -.11)
+        lane(lyre, 9 to -.34, 22 to -.60, 101 to -.60, 116 to -.15)
+        blink(27, 5)
     }
     scene(Action.ULTIMATE, "ultimate_requiem", 132) {
-        lane(Control.WAVE, 45 to .0, 50 to .22, 62 to .62, 81 to .95, 90 to 1.0, 123 to 1.0)
-        lane(Control.MARCH, 8 to .0, 14 to .50, 36 to .54, 44 to .63, 48 to .95, 52 to 1.0,
-            77 to 1.0, 86 to .89, 92 to .64, 103 to .50, 111 to .49, 119 to .0)
-        lane(eyes, 6 to .42, 13 to .62, 94 to .27, 113 to -.18)
-        lane(head, 15 to -.22, 39 to -.49, 45 to -.42, 53 to .45, 62 to .31, 78 to .35, 92 to -.10, 111 to -.24)
-        lane(nod, 16 to .62, 35 to .86, 44 to .95, 53 to -.92, 67 to -.69, 83 to -.48, 97 to .52, 111 to .42)
-        lane(weight, 20 to -.24, 41 to -.39, 46 to -.20, 53 to .51, 68 to .37, 82 to .31, 102 to -.21, 118 to -.12)
-        lane(height, 17 to -.43, 37 to -.77, 45 to -.91, 52 to .68, 64 to .38, 80 to .32, 97 to -.48, 106 to -.46, 122 to -.06)
-        lane(lyre, 8 to -.22, 17 to -.54, 105 to -.54, 118 to -.19)
-        lane(elbow, 9 to -.17, 21 to .19, 40 to .51, 45 to .13, 48 to -.74, 57 to .82,
-            65 to .61, 78 to .55, 90 to -.48, 105 to -.32, 118 to -.12)
+        lane(Control.MARCH, 8 to .045, 19 to .23, 32 to .45, 39 to .50, 46 to .55, 51 to .63,
+            58 to .84, 65 to 1.0, 74 to 1.0, 84 to .88, 99 to .56, 115 to .27, 126 to .055)
+        lane(Control.RETURN, 65 to .0, 72 to 1.0, 127 to 1.0)
+        lane(Control.WAVE, 52 to .0, 60 to .24, 75 to .68, 89 to .96, 99 to 1.0, 124 to 1.0)
+        lane(eyes, 9 to .35, 32 to .50, 54 to .22, 81 to -.12)
+        lane(head, 17 to -.13, 43 to -.24, 62 to .20, 74 to .16, 107 to -.09)
+        lane(nod, 17 to .26, 41 to .88, 49 to .96, 64 to -.86, 78 to -.55, 99 to .19, 111 to .29)
+        lane(weight, 25 to -.19, 49 to -.25, 65 to .36, 85 to .20, 109 to -.13)
+        lane(height, 33 to -.32, 50 to -.48, 64 to .53, 77 to .29, 102 to -.23, 121 to -.11)
+        lane(lyre, 11 to -.30, 25 to -.56, 109 to -.56, 124 to -.12)
+        blink(32, 6)
     }
 
     scene(Action.VICTORY, "victory", 113) {

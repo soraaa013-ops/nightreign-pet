@@ -207,7 +207,11 @@ try {
     modelBounds.x + modelBounds.width / 2,
     modelBounds.y + modelBounds.height / 2,
   )
-  await expect.poll(() => events.filter((event) => event.kind === 'ultimate').length).toBe(1)
+  await pet.mouse.dblclick(
+    modelBounds.x + modelBounds.width / 2,
+    modelBounds.y + modelBounds.height / 2,
+  )
+  await expect.poll(() => events.filter((event) => event.kind === 'ultimate').length).toBe(2)
   await expect
     .poll(() => events.find((event) => event.kind === 'victory'), { timeout: 25_000 })
     .toBeDefined()
@@ -215,7 +219,7 @@ try {
   expect(result.completed).toMatchObject({
     status: 'completed',
     elapsedMs: 18_000,
-    usedUltimates: ['night1'],
+    usedUltimates: [],
   })
   await expect(pet.getByText('NIGHTLORD SLAIN', { exact: true })).toBeVisible()
   const phases = events.filter((event) => event.kind === 'phase')

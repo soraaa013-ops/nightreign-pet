@@ -19,6 +19,7 @@ export interface Live2DAdapterOptions {
   manifestUrl?: string
   coreUrl?: string
   shaderUrl?: string
+  onMarchStart?: () => void
   onStatus?: (status: Live2DStatus) => void
 }
 
@@ -31,6 +32,7 @@ export class Live2DAdapter {
   private visible = true
   private reducedMotion = false
   private paused = false
+  private marchOnLoad = false
   private hasDrawn = false
   private disposed = false
   private baseAction: BaseAction = 'idle'
@@ -79,7 +81,7 @@ export class Live2DAdapter {
     if (this.paused === paused) return
     this.paused = paused
     if (paused) this.clearPointer(true)
-    if (paused && this.hasDrawn) this.stopFrames()
+    if (paused && this.hasDrawn && !this.runtime?.marching) this.stopFrames()
     else this.schedule()
   }
 
@@ -89,7 +91,13 @@ export class Live2DAdapter {
   }
 
   play(action: CharacterAction): boolean {
-    return this.runtime?.play(action) ?? false
+    if (!this.runtime) {
+      if (action === 'ultimate') this.marchOnLoad = true
+      return false
+    }
+    const accepted = this.runtime.play(action)
+    if (accepted && action === 'ultimate') this.schedule()
+    return accepted
   }
 
   lookAt(clientX: number, clientY: number): void {
@@ -148,7 +156,12 @@ export class Live2DAdapter {
         return
       }
       this.runtime = runtime
+      runtime.onMarchStart = this.options.onMarchStart
       runtime.setBaseAction(this.baseAction)
+      if (this.marchOnLoad) {
+        this.marchOnLoad = false
+        runtime.play('ultimate')
+      }
       this.options.onStatus?.({ state: 'ready', capabilities: runtime.capabilities })
       this.schedule()
     } catch (error) {
@@ -199,9 +212,12 @@ export class Live2DAdapter {
     this.previousFrame = time
     try {
       this.resize()
-      this.runtime.draw(this.paused ? 0 : Math.min(elapsed / 1000, 0.1), this.reducedMotion)
+      this.runtime.draw(
+        this.paused && !this.runtime.marching ? 0 : Math.min(elapsed / 1000, 0.1),
+        this.reducedMotion,
+      )
       this.hasDrawn = true
-      if (!this.paused) this.schedule()
+      if (!this.paused || this.runtime.marching) this.schedule()
     } catch (error) {
       this.reset()
       this.options.onStatus?.({ state: 'error', message: errorMessage(error) })

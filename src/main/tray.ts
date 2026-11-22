@@ -79,7 +79,7 @@ export class DesktopMenu {
     entries.push(
       check('静音', p.muted, { muted: !p.muted }),
       check('安静模式', p.quietMode, { quietMode: !p.quietMode }),
-      check('显示状态条', p.statusBar !== 'hidden', {
+      check('显示计时环', p.statusBar !== 'hidden', {
         statusBar: p.statusBar === 'hidden' ? 'compact' : 'hidden',
       }),
       check('锁定位置', p.positionLocked, { positionLocked: !p.positionLocked }),

@@ -259,39 +259,5 @@
       563,
       356
     ]
-  },
-  "march": [
-    {
-      "id": "MarchGather",
-      "painting": "painted-march-gather.png",
-      "source": [
-        231,
-        182,
-        735,
-        1036
-      ],
-      "place": [
-        208,
-        171,
-        621,
-        875
-      ]
-    },
-    {
-      "id": "MarchCry",
-      "painting": "painted-march-cry.png",
-      "source": [
-        14,
-        0,
-        1158,
-        1305
-      ],
-      "place": [
-        49,
-        34,
-        899,
-        1013
-      ]
-    }
-  ]
+  }
 }

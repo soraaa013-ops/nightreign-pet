@@ -115,10 +115,6 @@ export function validateCommand(input: unknown): Command {
       args('presetId')
       requireValue(identifier(c.presetId), '预设编号无效。')
       break
-    case 'ultimate':
-      args('sessionId', 'phaseId')
-      requireValue(identifier(c.phaseId) && identifier(c.sessionId), '战斗编号无效。')
-      break
     case 'abandon':
     case 'dismissResult':
     case 'resume':
@@ -168,6 +164,7 @@ export function validateCommand(input: unknown): Command {
       break
     case 'resetPosition':
     case 'contextMenu':
+    case 'ultimate':
     case 'preview':
     case 'quit':
       args()

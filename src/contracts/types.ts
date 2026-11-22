@@ -47,6 +47,7 @@ export interface Session {
   presetName: string
   timeline: Timeline
   elapsedMs: number
+  /** Preserved when opening saves from releases with per-battle limits. */
   usedUltimates: string[]
   pauseReason?: string
 }
@@ -68,13 +69,12 @@ export interface PresentationEvent {
 export type Command =
   | { type: 'start'; presetId: string }
   | { type: 'pause' | 'resume' | 'abandon' | 'dismissResult'; sessionId: string }
-  | { type: 'ultimate'; sessionId: string; phaseId: string }
   | { type: 'savePreset'; preset: Preset }
   | { type: 'deletePreset'; id: string }
   | { type: 'preferences'; patch: Partial<Omit<Preferences, 'revision'>>; expectedRevision: number }
   | { type: 'openControl'; page?: 'prepare' | 'settings' | 'result' }
   | { type: 'visibility'; visible: boolean }
-  | { type: 'resetPosition' | 'contextMenu' | 'quit' | 'preview' }
+  | { type: 'resetPosition' | 'contextMenu' | 'quit' | 'preview' | 'ultimate' }
   | { type: 'hitTest'; hit: boolean }
   | { type: 'drag'; dx: number; dy: number; finished?: boolean }
 export interface DesktopApi {

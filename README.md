@@ -1,16 +1,16 @@
 # 小蜗渡夜
 
-以《黑夜君临》的渡夜节奏陪伴一节课的 Electron 桌宠。默认 40 分钟，两个白天各经历两次缩圈，再进入第一夜、第二夜与夜王战。点「出击」后自动推进，每场战斗都可以双击小蜗施放一次「不死行军」，时间不受互动影响。
+以《黑夜君临》的渡夜节奏陪伴一节课的 Electron 桌宠。点「出击」，小蜗身边的金色时钟从十二点出发。第一天、第一夜、第二天、第二夜与夜王战依次推进，指针顺时针走完一圈，正好完成一次渡夜。默认一圈 40 分钟，也可以设置自己的课长。
 
-桌宠下方常驻两条计时进度。第一条显示当前阶段和倒计时，第二条显示整局进度和剩余时间。缩圈时光环持续收紧，暂停时两条计时同时停住。第一夜、第二夜、夜王战各有一套动作。可以在「设置 → 桌宠」切换计时栏的详略或将它隐藏。[角色资源与动作](docs/CHARACTER_ASSETS.md) · [可编辑模型和动作工程](scripts/character-rig/editor/)
+表盘刻度按本局各阶段的实际时长排列。简洁模式用图标和光弧显示进程，想看还剩几分钟，可以把鼠标移到表冠。点表冠可打开面板，「设置 → 桌宠 → 计时环」可切换详细读数或隐藏表盘。暂停时指针停在原处。
 
-在第一夜、第二夜或夜王战中，双击小蜗的身体，她会俯身蓄势，再仰身张臂发出哀叹，脚下的光环随之扩开。用键盘时可以在出击面板按 Alt+U。平时把光标移近小蜗，她会转眼看向你，移开后逐渐收回视线。[角色资料与实机动作对照](docs/CHARACTER_ASSETS.md#不死行军)
+随时双击小蜗的身体，都能让她施放「不死行军」。待机、探索、战斗、暂停和结算后均可重复施放。动作播到一半时再双击，她会先收势，再接上一次。暂停时只有小蜗回应，课程时钟保持原位。控制面板的出击页也支持 Alt+U。[角色动作与实机参照](docs/CHARACTER_ASSETS.md#不死行军)
 
-Windows 用户请从系统托盘退出旧版，将新版 ZIP 完整解压到新文件夹，再打开其中的「小蜗渡夜.exe」。[下载 0.3.5-march.1 · Windows x64](https://github.com/soraaa013-ops/nightreign-pet/releases/download/v0.3.5-march.1/Nightreign-Pet-0.3.5-march.1-Windows-x64.zip)
+Windows 用户请从托盘退出旧版，将 ZIP 完整解压到新文件夹，再打开其中的「小蜗渡夜.exe」。[下载 0.3.6-dial.1 · Windows x64](https://github.com/soraaa013-ops/nightreign-pet/releases/download/v0.3.6-dial.1/Nightreign-Pet-0.3.6-dial.1-Windows-x64.zip)
 
-从 GitHub Releases 下载对应系统的桌宠，或下载附带编辑工程的独立模型包。Windows 用户完整解压 ZIP 后双击「小蜗渡夜.exe」。首次运行会询问随包 Cubism Core 的使用条款。[下载桌宠和模型](https://github.com/soraaa013-ops/nightreign-pet/releases/latest) · [使用与验证范围](docs/BUILD_ARTIFACTS.md)
+首次运行会询问随包 Cubism Core 的使用条款。独立模型包附带编辑工程。[下载桌宠和模型](https://github.com/soraaa013-ops/nightreign-pet/releases/latest) · [使用与验证范围](docs/BUILD_ARTIFACTS.md)
 
-<img src="docs/character/v0.3.5-immortal-march.webp" width="275" alt="不死行军实机预览，小蜗俯身、仰身哀叹，再回到待机姿势">
+<img src="docs/character/v0.3.6-dial.webp" width="280" alt="渡夜时钟短局实录，指针绕小蜗一圈，日间双击施放不死行军">
 
 [上一版拨琴动作](docs/character/v0.3.4-motions.webp) · [动作姿态参考](docs/character/v0.3.4-poses.png) · [拨琴手势设定稿](art/revenant/lyre-acting-study.webp) · [实机脸部近照](docs/character/v0.3.3-face.png) · [0.3.0 验收结果](docs/character/0.3.0.md)
 
@@ -26,7 +26,7 @@ npm run dev
 
 已经下载官方 `CubismSdkForWeb-5-r.5.zip` 时，可用 `npm run prepare:cubism -- /path/to/CubismSdkForWeb-5-r.5.zip` 离线恢复。已校验的 Core 会在后续启动和构建时复用。
 
-首次打开会显示出击准备和桌宠。点桌宠下方的计时栏打开控制面板，右键或系统托盘可暂停、静音、设置、显示小蜗与退出。启用鼠标穿透后，从托盘关闭穿透或重置位置。默认40分钟预设不可删除，修改时另存为用户预设。
+首次打开会显示出击准备和桌宠。点渡夜时钟的表冠打开控制面板，右键或系统托盘可暂停、静音、设置、显示小蜗与退出。启用鼠标穿透后，从托盘关闭穿透或重置位置。默认40分钟预设不可删除，修改时另存为用户预设。
 
 ## 构建和测试
 

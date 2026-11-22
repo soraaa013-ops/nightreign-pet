@@ -136,31 +136,13 @@
       "z": 6
     },
     {
-      "id": "MarchGather",
-      "file": "parts/MarchGather.png",
-      "x": 208,
-      "y": 171,
-      "width": 621,
-      "height": 875,
-      "z": 7
-    },
-    {
-      "id": "MarchCry",
-      "file": "parts/MarchCry.png",
-      "x": 49,
-      "y": 34,
-      "width": 899,
-      "height": 1013,
-      "z": 8
-    },
-    {
       "id": "LidLeft",
       "file": "parts/LidLeft.png",
       "x": 412,
       "y": 146,
       "width": 94,
       "height": 94,
-      "z": 9
+      "z": 7
     },
     {
       "id": "LidRight",
@@ -169,7 +151,79 @@
       "y": 146,
       "width": 94,
       "height": 94,
-      "z": 10
+      "z": 8
+    },
+    {
+      "id": "MarchSleeveL",
+      "file": "parts/MarchSleeveL.png",
+      "x": 357,
+      "y": 382,
+      "width": 191,
+      "height": 167,
+      "z": 13
+    },
+    {
+      "id": "MarchFingersL",
+      "file": "parts/MarchFingersL.png",
+      "x": 517,
+      "y": 322,
+      "width": 108,
+      "height": 85,
+      "z": 15
+    },
+    {
+      "id": "MarchSleeveR",
+      "file": "parts/MarchSleeveR.png",
+      "x": 545,
+      "y": 355,
+      "width": 113,
+      "height": 152,
+      "z": 14
+    },
+    {
+      "id": "MarchFingersR",
+      "file": "parts/MarchFingersR.png",
+      "x": 647,
+      "y": 459,
+      "width": 80,
+      "height": 47,
+      "z": 16
+    },
+    {
+      "id": "MarchPalmL",
+      "file": "parts/MarchPalmL.png",
+      "x": 525,
+      "y": 317,
+      "width": 88,
+      "height": 82,
+      "z": 17
+    },
+    {
+      "id": "MarchPalmR",
+      "file": "parts/MarchPalmR.png",
+      "x": 651,
+      "y": 433,
+      "width": 83,
+      "height": 76,
+      "z": 18
+    },
+    {
+      "id": "MarchSkull",
+      "file": "parts/MarchSkull.png",
+      "x": 510,
+      "y": 170,
+      "width": 74,
+      "height": 89,
+      "z": 11
+    },
+    {
+      "id": "MarchMouth",
+      "file": "parts/MarchMouth.png",
+      "x": 475,
+      "y": 215,
+      "width": 49,
+      "height": 46,
+      "z": 12
     }
   ]
 }

@@ -35,11 +35,12 @@ export class AudioDirector {
       oscillator.frequency.setValueAtTime(hz, start)
       gain.gain.setValueAtTime(0, start)
       if (march) {
-        // Both voices rise together as her shoulders open, then decay with the ground wave.
+        // The two March variants release their ground wave at 1.57 s and 1.73 s.
+        const release = start + 1.65
         oscillator.frequency.exponentialRampToValueAtTime(hz * 1.06, start + 1.3)
-        oscillator.frequency.exponentialRampToValueAtTime(hz * 1.5, start + 1.55)
+        oscillator.frequency.exponentialRampToValueAtTime(hz * 1.5, release)
         gain.gain.linearRampToValueAtTime(0.017, start + 1.3)
-        gain.gain.linearRampToValueAtTime(0.055, start + 1.55)
+        gain.gain.linearRampToValueAtTime(0.055, release)
         gain.gain.exponentialRampToValueAtTime(0.0001, start + 2.65)
       } else {
         gain.gain.linearRampToValueAtTime(0.1, start + 0.025)

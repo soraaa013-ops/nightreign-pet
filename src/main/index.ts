@@ -184,9 +184,6 @@ async function boot() {
         windows.closeControl()
         break
       }
-      case 'ultimate':
-        await engine.ultimate(command.sessionId, command.phaseId)
-        break
       case 'savePreset':
         await settings.savePreset(command.preset)
         break
@@ -209,8 +206,9 @@ async function boot() {
       case 'resetPosition':
         windows.resetPosition()
         break
+      case 'ultimate':
       case 'preview':
-        windows.present({ id: randomUUID(), kind: 'preview' })
+        windows.present({ id: randomUUID(), kind: command.type })
         break
       case 'contextMenu':
         menu?.popup()

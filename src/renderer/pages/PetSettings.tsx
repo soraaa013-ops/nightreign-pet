@@ -36,12 +36,12 @@ export function PetSettings({ preferences: p, update: pref, reset, visible, send
           onChange={(clickThrough) => pref({ clickThrough })}
         />
         <Select
-          label="状态条"
+          label="计时环"
           value={p.statusBar}
           options={[
             { value: 'hidden', label: '隐藏' },
-            { value: 'compact', label: '标准 · 阶段与整局进度' },
-            { value: 'detailed', label: '详细 · 增加已用时间' },
+            { value: 'compact', label: '简洁 · 仅显示表盘' },
+            { value: 'detailed', label: '详细 · 显示阶段和倒计时' },
           ]}
           onChange={(statusBar) => pref({ statusBar })}
         />

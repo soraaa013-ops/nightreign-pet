@@ -123,53 +123,6 @@ describe('渡夜会话与单调时钟', () => {
     expect(run.current()).toMatchObject({ status: 'completed', elapsedMs: 11_000 })
   })
 
-  test('同一场绝招只使用一次，精确边界优先切换并保持总时间', async () => {
-    const run = createEngine()
-    await run.engine.start(shortPreset())
-    const { id, timeline } = run.current()
-    const [firstBattle, secondBattle, lastBattle] = [
-      timeline.phases[4],
-      timeline.phases[9],
-      timeline.phases[10],
-    ]
-
-    run.advance(3999)
-    await expect(run.engine.ultimate(id, firstBattle.id)).rejects.toThrow()
-    run.advance(1)
-    await run.engine.ultimate(id, firstBattle.id)
-    expect(run.current()).toMatchObject({ elapsedMs: 4000, usedUltimates: [firstBattle.id] })
-    expect(run.writes.at(-1)?.usedUltimates).toEqual([firstBattle.id])
-    await expect(run.engine.ultimate(id, firstBattle.id)).rejects.toThrow()
-
-    run.advance(5000)
-    await run.engine.pause(id)
-    await expect(run.engine.ultimate(id, secondBattle.id)).rejects.toThrow()
-    run.advance(90_000)
-    await run.engine.resume(id)
-    await expect(run.engine.ultimate(id, firstBattle.id)).rejects.toThrow()
-    await run.engine.ultimate(id, secondBattle.id)
-    expect(run.current().elapsedMs).toBe(9000)
-
-    run.advance(1000)
-    await expect(run.engine.ultimate(id, secondBattle.id)).rejects.toThrow()
-    await run.engine.ultimate(id, lastBattle.id)
-    expect(run.current().elapsedMs).toBe(10_000)
-    run.advance(999)
-    await run.engine.tick()
-    expect(run.current()).toMatchObject({ status: 'running', elapsedMs: 10_999 })
-    run.advance(1)
-    await run.engine.tick()
-
-    expect(run.current()).toMatchObject({
-      status: 'completed',
-      elapsedMs: 11_000,
-      usedUltimates: [firstBattle.id, secondBattle.id, lastBattle.id],
-    })
-    expect(
-      run.events.filter((event) => event.kind === 'ultimate').map((event) => event.phaseId),
-    ).toEqual([firstBattle.id, secondBattle.id, lastBattle.id])
-  })
-
   test('旧会话命令不干扰新局，提前结束不触发胜利', async () => {
     const run = createEngine()
     const next = shortPreset()
@@ -188,7 +141,6 @@ describe('渡夜会话与单调时钟', () => {
       () => run.engine.pause(previousId),
       () => run.engine.resume(previousId),
       () => run.engine.abandon(previousId),
-      () => run.engine.ultimate(previousId, run.current().timeline.phases[4].id),
     ])
       await expect(action()).rejects.toThrow()
 
@@ -207,8 +159,9 @@ describe('渡夜会话与单调时钟', () => {
     const session = first.current()
     const firstBattle = session.timeline.phases[4]
     first.advance(4100)
-    await first.engine.ultimate(session.id, firstBattle.id)
-    const saved = first.writes.at(-1)
+    await first.engine.tick()
+    // Older releases recorded the encounter in the saved session.
+    const saved = { ...first.writes.at(-1)!, usedUltimates: [firstBattle.id] }
     expect(saved).toMatchObject({
       status: 'running',
       elapsedMs: 4100,
@@ -226,7 +179,6 @@ describe('渡夜会话与单调时钟', () => {
     })
     expect(restarted.events).toHaveLength(0)
     await restarted.engine.resume(session.id)
-    await expect(restarted.engine.ultimate(session.id, firstBattle.id)).rejects.toThrow()
     restarted.advance(6899)
     await restarted.engine.tick()
     expect(restarted.current()).toMatchObject({ status: 'running', elapsedMs: 10_999 })
@@ -352,18 +304,12 @@ describe('渡夜会话与单调时钟', () => {
     expect(run.current()).toMatchObject({ status: 'running', elapsedMs: 5002 })
   })
 
-  test('重要写入即时失败时，绝招、放弃和完成均不提前确认', async () => {
+  test('重要写入即时失败时，放弃和完成均不提前确认', async () => {
     const run = createEngine()
     await run.engine.start(shortPreset())
-    const { id, timeline } = run.current()
+    const { id } = run.current()
     run.advance(4000)
     await run.engine.tick()
-
-    run.save.mockRejectedValueOnce(new Error('不可写'))
-    await expect(run.engine.ultimate(id, timeline.phases[4].id)).rejects.toThrow(/保存/)
-    expect(run.current().usedUltimates).toEqual([])
-    expect(run.events.filter((event) => event.kind === 'ultimate')).toHaveLength(0)
-    await run.engine.ultimate(id, timeline.phases[4].id)
 
     run.save.mockRejectedValueOnce(new Error('不可写'))
     await expect(run.engine.abandon(id)).rejects.toThrow(/保存/)
@@ -376,32 +322,11 @@ describe('渡夜会话与单调时钟', () => {
     expect(run.events.filter((event) => event.kind === 'victory')).toHaveLength(0)
   })
 
-  test('绝招和完成事件必须在成功保存后才发出', async () => {
+  test('完成事件在成功保存后发出', async () => {
     const run = createEngine()
     await run.engine.start(shortPreset())
-    const { id, timeline } = run.current()
-    run.advance(4000)
-    await run.engine.tick()
-
-    let finishSave: () => void = () => {
-      throw new Error('等待保存尚未开始')
-    }
-    run.save.mockImplementationOnce(
-      () =>
-        new Promise<void>((resolve) => {
-          finishSave = resolve
-        }),
-    )
-    const ultimate = run.engine.ultimate(id, timeline.phases[4].id)
-    await vi.waitFor(() =>
-      expect(run.save.mock.lastCall?.[0]?.usedUltimates).toEqual([timeline.phases[4].id]),
-    )
-    expect(run.events.filter((event) => event.kind === 'ultimate')).toHaveLength(0)
-    finishSave()
-    await ultimate
-    expect(run.events.filter((event) => event.kind === 'ultimate')).toHaveLength(1)
-
-    run.advance(7000)
+    run.advance(11_000)
+    let finishSave!: () => void
     run.save.mockImplementationOnce(
       () =>
         new Promise<void>((resolve) => {

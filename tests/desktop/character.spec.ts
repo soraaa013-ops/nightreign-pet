@@ -113,12 +113,28 @@ test('正式小蜗在 Cubism 中局部变形，并在桌面完成待机、轻触
   expect(rig.actions.battle2.files.length).toBeGreaterThan(1)
   expect(rig.actions.nightlord.files.length).toBeGreaterThan(1)
   expect(rig.actions.nightlord.meshes).toContain('ArtSpirit')
-  expect(rig.actions.ultimate.meshes).toContain('ArtMarchCry')
+  expect(rig.actions.ultimate.meshes).toContain('ArtMarchSkull')
   expect(rig.actions.ultimate.meshes).not.toContain('ArtSpirit')
-  expect(rig.march.armTravelPx, '张臂时宽袖与手掌应在角色网格上有清晰位移').toBeGreaterThan(60)
-  expect(rig.march.gathered).toEqual(['ArtMarchGather'])
-  expect(rig.march.cry).toEqual(['ArtMarchCry'])
-  expect(rig.march.wave.sort()).toEqual(['ArtMarchCry', 'ArtMarchSparks', 'ArtMarchWave'])
+  expect(rig.march.maxPalmRatio, '张掌时从腕部到最远指尖的尺度保持稳定').toBeLessThan(1.1)
+  expect(rig.march.minPalmRatio).toBeGreaterThan(0.88)
+  expect(rig.march.maxMouthHeightRatio, '张口高度不得超过原画').toBeLessThan(1.12)
+  expect(rig.march.deepestBowPx, '躬身时头顶应明显下沉').toBeGreaterThan(100)
+  expect(rig.march.armTravelPx).toBeGreaterThan(160)
+  expect(rig.march.recoverySeparationPx, '收手经腰侧，避开遮脸时抬腕的路径').toBeGreaterThan(100)
+  expect(rig.march.biggestLimbStep, '相邻 1% 行程内手掌应连续移动').toBeLessThan(32)
+  expect(rig.march.peakSeamPx, '张臂峰值必须接上收势的第一帧').toBeLessThan(0.1)
+  expect(rig.march.leastHeadOpacity).toBeGreaterThan(0.99)
+  expect(rig.march.leastDressOpacity).toBeGreaterThan(0.99)
+  expect(rig.march.gathered).toEqual(
+    expect.arrayContaining(['ArtHead', 'ArtDress', 'ArtMarchSleeveL', 'ArtMarchFingersR']),
+  )
+  expect(rig.march.cry).toEqual(
+    expect.arrayContaining(['ArtMarchSkull', 'ArtMarchMouth', 'ArtMarchPalmL', 'ArtMarchPalmR']),
+  )
+  expect(rig.march.wave.filter((id) => !rig.march.cry.includes(id)).sort()).toEqual([
+    'ArtMarchSparks',
+    'ArtMarchWave',
+  ])
   expect(rig.march.neutral).toContain('ArtLyre')
   expect(rig.march.neutral.filter((id) => id.startsWith('ArtMarch'))).toEqual([])
   expect(rig.march.settled).toEqual(rig.march.neutral)
@@ -141,11 +157,18 @@ test('正式小蜗在 Cubism 中局部变形，并在桌面完成待机、轻触
   )
 
   await mkdir(info.outputDir, { recursive: true })
-  const layout = await pet.evaluate(() => ({
-    modelBottom: document.querySelector('.pet-model')!.getBoundingClientRect().bottom,
-    statusTop: document.querySelector('.pet-status')!.getBoundingClientRect().top,
-  }))
-  expect(layout.modelBottom, '裙摆和状态条应有独立空间').toBeLessThanOrEqual(layout.statusTop + 1)
+  const layout = await pet.evaluate(() => {
+    const model = document.querySelector('.pet-model')!.getBoundingClientRect()
+    const dial = document.querySelector('.dial-face')!.getBoundingClientRect()
+    return {
+      modelTop: model.top,
+      modelBottom: model.bottom,
+      dialTop: dial.top,
+      dialBottom: dial.bottom,
+    }
+  })
+  expect(layout.modelTop).toBeGreaterThanOrEqual(layout.dialTop)
+  expect(layout.modelBottom).toBeLessThanOrEqual(layout.dialBottom)
   await pet.screenshot({ path: info.outputPath('desktop.png'), omitBackground: true })
   const pixels = await modelPixels(pet, info.outputPath('idle.png'))
   expect(pixels.coverage, '真实角色的不透明像素').toBeGreaterThan(0.025)
@@ -184,6 +207,8 @@ test('正式小蜗在 Cubism 中局部变形，并在桌面完成待机、轻触
   if (pixels.gap) await pet.mouse.click(pixels.gap.x, pixels.gap.y)
   expect(app.windows()).toHaveLength(1)
   await pet.mouse.click(pixels.solid.x, pixels.solid.y)
+  expect(app.windows()).toHaveLength(1)
+  await pet.locator('.pet-status').click()
   const panel = await view(app, 'control')
   const prefs = (await snapshot(panel)).preferences
   await command(panel, {
@@ -220,7 +245,7 @@ test('正式小蜗在 Cubism 中局部变形，并在桌面完成待机、轻触
   const active = await view(app, 'control')
   const session = (await snapshot(active)).session!
   await command(active, { type: 'pause', sessionId: session.id })
-  await expect(pet.locator('.pet-status')).toContainText('已暂停')
+  await expect(pet.locator('.pet-dial')).toHaveAttribute('data-state', 'paused')
   await expect
     .poll(
       async () => {
@@ -234,7 +259,7 @@ test('正式小蜗在 Cubism 中局部变形，并在桌面完成待机、轻触
   await command(active, { type: 'resume', sessionId: session.id })
   await active.close()
 
-  await pet.locator('.boss-health').waitFor({ timeout: 18_000 })
+  await pet.getByRole('progressbar', { name: '战斗进度' }).waitFor({ timeout: 18_000 })
   await startAudit()
   await verifyAction('battle', 0.8)
   const battlePixels = await modelPixels(pet, info.outputPath('battle.png'))
@@ -253,7 +278,7 @@ test('正式小蜗在 Cubism 中局部变形，并在桌面完成待机、轻触
   )
 })
 
-test('50%、125%、200% 缩放下的小蜗从花冠到脚尖均完整，三种状态条保留独立空间', async ({
+test('50%、125%、200% 缩放下的小蜗从花冠到脚尖均完整，计时环的三种模式不遮挡人物', async ({
   launchApp,
 }, info) => {
   test.setTimeout(180_000)
@@ -270,7 +295,7 @@ test('50%、125%、200% 缩放下的小蜗从花冠到脚尖均完整，三种�
     .click()
   await expect(pet.locator('.pet-stage')).toHaveCount(0, { timeout: 7_000 })
   const slider = settings.getByRole('slider', { name: '小蜗大小' })
-  const status = settings.getByRole('combobox', { name: '状态条' })
+  const status = settings.getByRole('combobox', { name: '计时环' })
   await mkdir(info.outputDir, { recursive: true })
   const results = []
   for (const scale of [50, 125, 200]) {
@@ -293,17 +318,19 @@ test('50%、125%、200% 缩放下的小蜗从花冠到脚尖均完整，三种�
       if (mode === 'hidden') await expect(bar).toHaveCount(0)
       else {
         await expect(bar).toBeVisible()
-        if (mode === 'detailed') await expect(bar).toContainText('全程 40:00')
+        if (mode === 'detailed')
+          await expect(pet.locator('.dial-readout')).toContainText('全程 40:00')
       }
       const layout = await pet.evaluate(() => {
         const model = document.querySelector<HTMLCanvasElement>('.pet-model')!
         const rect = model.getBoundingClientRect()
-        const status = document.querySelector('.pet-status')?.getBoundingClientRect()
+        const dial = document.querySelector('.dial-face')?.getBoundingClientRect()
         return {
           canvasHeight: rect.height,
           canvasBottom: rect.bottom,
-          statusTop: status?.top ?? null,
-          statusBottom: status?.bottom ?? null,
+          canvasTop: rect.top,
+          dialTop: dial?.top ?? null,
+          dialBottom: dial?.bottom ?? null,
           ready: !document.querySelector('.pet-concept'),
         }
       })
@@ -320,8 +347,8 @@ test('50%、125%、200% 缩放下的小蜗从花冠到脚尖均完整，三种�
       expect(bounds.bottom - bounds.top).toBeGreaterThan(layout.canvasHeight * ratio * 0.75)
       if (mode === 'hidden') expect(layout.canvasHeight).toBe(height)
       else {
-        expect(layout.statusTop).toBeGreaterThanOrEqual(layout.canvasBottom - 1)
-        expect(layout.statusBottom).toBeLessThanOrEqual(height)
+        expect(layout.dialTop).toBeLessThanOrEqual(layout.canvasTop)
+        expect(layout.dialBottom).toBeGreaterThanOrEqual(layout.canvasBottom)
       }
       results.push({ scale, mode, width, height, ...layout, painted: bounds, ratio })
     }

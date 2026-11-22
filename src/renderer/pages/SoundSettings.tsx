@@ -45,7 +45,7 @@ export function SoundSettings({ preferences: p, update: pref, reset, send, sound
       <Panel title="演出">
         <Toggle
           label="缩圈提示音"
-          description="开始缩圈时播放提示音，缩圈进度始终显示在状态条。"
+          description="开始缩圈时播放提示音，计时环上的旋涡标记显示缩圈进度。"
           value={p.shrinkAlerts}
           onChange={(shrinkAlerts) => pref({ shrinkAlerts })}
         />

@@ -4,7 +4,7 @@ export async function modelPixels(pet: Page, output?: string) {
   const png = await pet.screenshot({
     path: output,
     omitBackground: true,
-    style: '.pet-scene > :not(.pet-model) { visibility: hidden !important }',
+    style: '.pet-scene > :not(.pet-model) { opacity: 0 !important }',
   })
   return pet.evaluate(async (base64) => {
     const image = new Image()

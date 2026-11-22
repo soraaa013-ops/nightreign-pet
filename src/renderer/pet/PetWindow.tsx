@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { AppSnapshot } from '../../contracts/types'
 import { Live2DAdapter, type Live2DStatus } from '../live2d'
 import { useDesktop } from '../useDesktop'
-import { SessionProgress } from '../components/SessionProgress'
+import { PetDial } from './PetDial'
 import { AudioDirector } from './AudioDirector'
 import { NightRain } from './NightRain'
 import { haloScale, imageHit, type AlphaMask } from './presentation'
@@ -30,7 +30,7 @@ export function PetWindow() {
   const bannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const previousHit = useRef<boolean | null>(null)
   const releasedCharacter = useRef(false)
-  const firstBattleTap = useRef(false)
+  const firstCharacterTap = useRef(false)
   const drag = useRef<{
     pointerId: number
     x: number
@@ -42,7 +42,10 @@ export function PetWindow() {
   latest.current = snapshot
   useEffect(() => {
     if (!canvas.current) return
-    const adapter = new Live2DAdapter(canvas.current, { onStatus: setModelStatus })
+    const adapter = new Live2DAdapter(canvas.current, {
+      onStatus: setModelStatus,
+      onMarchStart: () => audio.current?.cue('ultimate'),
+    })
     model.current = adapter
     audio.current = new AudioDirector()
     void adapter.load()
@@ -56,7 +59,6 @@ export function PetWindow() {
       audio.current?.configure(s.preferences)
       if (event.kind === 'ultimate') {
         adapter.play('ultimate')
-        audio.current?.cue('ultimate')
         return
       }
       if (event.kind === 'victory') {
@@ -103,7 +105,6 @@ export function PetWindow() {
   useEffect(() => {
     if (!snapshot) return
     audio.current?.configure(snapshot.preferences)
-    if (snapshot.session?.status === 'paused') audio.current?.stop()
     if (snapshot.preferences.clickThrough) model.current?.clearPointer(true)
     model.current?.setVisible(snapshot.petVisible)
     model.current?.setPaused(snapshot.session?.status === 'paused')
@@ -112,6 +113,9 @@ export function PetWindow() {
     )
   }, [snapshot, reducedMotion])
   const session = snapshot?.session
+  useEffect(() => {
+    if (session?.status === 'paused') audio.current?.stop()
+  }, [session?.status])
   const phase = session?.timeline.phases.find(
     (p) => session.elapsedMs >= p.startMs && session.elapsedMs < p.endMs,
   )
@@ -122,14 +126,10 @@ export function PetWindow() {
       id === 'night1' || id === 'night2' || id === 'nightlord' ? stages[id] : 'idle',
     )
   }, [phase?.id])
-  const canCast =
-    session?.status === 'running' &&
-    phase?.kind === 'battle' &&
-    !session.usedUltimates.includes(phase.id)
   useEffect(() => {
-    firstBattleTap.current = false
+    firstCharacterTap.current = false
     releasedCharacter.current = false
-  }, [session?.id, phase?.id, canCast, snapshot?.preferences.clickThrough])
+  }, [snapshot?.preferences.clickThrough])
   const open = () => send({ type: 'openControl', page: 'prepare' }).catch(() => {})
   const previewHit = (x: number, y: number) =>
     modelStatus.state !== 'ready' && previewImage.current
@@ -164,19 +164,13 @@ export function PetWindow() {
     return current
   }
   const onTouch = (clickCount: number) => {
-    if (session?.status === 'paused') return
-    if (session?.status === 'running' && phase?.kind === 'battle') {
-      // Chromium's click count follows the system's double-click timing and distance.
-      if (canCast && clickCount === 2 && firstBattleTap.current) {
-        firstBattleTap.current = false
-        void send({ type: 'ultimate', sessionId: session.id, phaseId: phase.id }).catch(() => {})
-      } else {
-        firstBattleTap.current = canCast && clickCount === 1
-      }
+    if (clickCount % 2 === 0 && firstCharacterTap.current) {
+      firstCharacterTap.current = false
+      void send({ type: 'ultimate' }).catch(() => {})
       return
     }
-    model.current?.play('touch')
-    if (!session || session.status === 'completed') void open()
+    firstCharacterTap.current = clickCount % 2 === 1
+    if (firstCharacterTap.current && session?.status !== 'paused') model.current?.play('touch')
   }
   const strength =
     snapshot?.preferences.quietMode || snapshot?.preferences.intensity === 'low'
@@ -193,9 +187,10 @@ export function PetWindow() {
   return (
     <div
       className="pet-scene"
+      data-dial={snapshot?.preferences.statusBar ?? 'compact'}
       onDragStart={(event) => event.preventDefault()}
       onContextMenu={(e) => {
-        firstBattleTap.current = false
+        firstCharacterTap.current = false
         e.preventDefault()
         send({ type: 'contextMenu' }).catch(() => {})
       }}
@@ -235,7 +230,7 @@ export function PetWindow() {
           (e.target as HTMLElement).closest('[data-pet-control]') ||
           (!model.current?.hitTest(e.clientX, e.clientY) && !previewHit(e.clientX, e.clientY))
         ) {
-          firstBattleTap.current = false
+          firstCharacterTap.current = false
           return
         }
         e.preventDefault()
@@ -261,7 +256,7 @@ export function PetWindow() {
           !!d &&
           !d.moved &&
           !!(model.current?.hitTest(e.clientX, e.clientY) || previewHit(e.clientX, e.clientY))
-        if (!releasedCharacter.current) firstBattleTap.current = false
+        if (!releasedCharacter.current) firstCharacterTap.current = false
       }}
       onClick={(e) => {
         if (
@@ -276,12 +271,12 @@ export function PetWindow() {
       onLostPointerCapture={(e) => {
         if (drag.current?.pointerId !== e.pointerId) return
         finishDrag()
-        firstBattleTap.current = false
+        firstCharacterTap.current = false
       }}
       onPointerCancel={(e) => {
         if (drag.current?.pointerId !== e.pointerId) return
         finishDrag()
-        firstBattleTap.current = false
+        firstCharacterTap.current = false
         previousHit.current = null
       }}
       onPointerLeave={() => {
@@ -295,6 +290,12 @@ export function PetWindow() {
       <div
         className="pet-halo"
         aria-hidden="true"
+        data-active={
+          previewing ||
+          phase?.kind === 'shrink' ||
+          phase?.kind === 'battle' ||
+          phase?.id.endsWith('inner')
+        }
         data-shrinking={phase?.kind === 'shrink' ? 'true' : 'false'}
         style={{ transform: `scale(${haloScale(phase, session?.elapsedMs ?? 0)})` }}
       />
@@ -367,34 +368,12 @@ export function PetWindow() {
       {banner && (
         <div className={`pet-stage ${banner.victory ? 'victory' : ''}`}>{banner.text}</div>
       )}
-      {snapshot?.preferences.statusBar !== 'hidden' && (
-        <div
-          className="pet-status"
-          data-pet-control
-          role="button"
-          tabIndex={0}
-          title="打开渡夜面板"
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault()
-              void open()
-            }
-          }}
-          onClick={open}
-        >
-          {session ? (
-            <SessionProgress
-              session={session}
-              detailed={snapshot?.preferences.statusBar === 'detailed'}
-            />
-          ) : (
-            <span className="pet-ready">
-              等待出击 <span>打开面板 →</span>
-            </span>
-          )}
-          {error && <small role="alert">{error}</small>}
-        </div>
-      )}
+      <PetDial
+        session={session ?? null}
+        mode={snapshot?.preferences.statusBar ?? 'compact'}
+        open={open}
+        error={error}
+      />
     </div>
   )
 }
