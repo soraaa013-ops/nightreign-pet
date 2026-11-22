@@ -252,7 +252,10 @@ private class Binding(val marks: Landmarks, val hairEnd: Float) {
                     val palm = smooth(130f, 214f, span)
                     val sleeve = 1f - smooth(32f + 76f * palm, 78f + 61f * palm,
                         segmentDistance(p, shoulder, beyondFingers))
-                    rotate(p, shoulder, -side * amount * 17f * reach * sleeve)
+                    // Her skirt flares immediately below each forearm.
+                    val belowArm = p.y - shoulder.y - span * .55f
+                    val aboveSkirt = 1f - smooth(42f + 16f * palm, 62f + 13f * palm, belowArm)
+                    rotate(p, shoulder, -side * amount * 17f * reach * sleeve * aboveSkirt)
                 }
                 "MarchGather" -> {
                     // Keep fingertips against the face while elbows fold and sleeves draw inward.
