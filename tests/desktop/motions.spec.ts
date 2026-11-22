@@ -52,3 +52,35 @@ test('三场战斗按阶段切换动作组，每场会换招', async ({ launchAp
     .poll(() => history.some((event) => event.action === 'victory'), { timeout: 20_000 })
     .toBe(true)
 })
+
+test('绝招跨阶段时演完收势，再接新阶段的动作', async ({ launchApp }) => {
+  const app = await launchApp()
+  const pet = await view(app, 'pet')
+  const [moduleRequest] = await Promise.all([
+    pet.waitForRequest((r) =>
+      /\/cubism-runtime(?:-[\w-]+)?\.(?:js|ts)$/.test(new URL(r.url()).pathname),
+    ),
+    pet.reload(),
+  ])
+  await expect(pet.locator('.pet-concept')).toHaveCount(0, { timeout: 20_000 })
+  const afterBoundary = await pet.evaluate(async (url) => {
+    const { CubismRuntime } = await import(url)
+    const proto = CubismRuntime.prototype
+    const draw = proto.draw
+    return new Promise<{ action: string; base: string }>((resolve) => {
+      proto.draw = function (elapsed: number, reduced: boolean) {
+        proto.draw = draw
+        draw.call(this, elapsed, reduced)
+        this.setBaseAction('battle')
+        this.play('ultimate')
+        this.setBaseAction('battle2')
+        Reflect.set(window, 'activePetMotion', () => this.activeAction)
+        resolve({ action: this.activeAction, base: this.baseAction })
+      }
+    })
+  }, moduleRequest.url())
+  expect(afterBoundary).toEqual({ action: 'ultimate', base: 'battle2' })
+  await expect
+    .poll(() => pet.evaluate(() => Reflect.get(window, 'activePetMotion')()), { timeout: 12_000 })
+    .toBe('battle2')
+})

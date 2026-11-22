@@ -12,9 +12,29 @@
 			"Name": "侧首 / Head tilt"
 		},
 		{
+			"Id": "ParamHeadPitch",
+			"GroupId": "",
+			"Name": "俯仰 / Head pitch"
+		},
+		{
 			"Id": "ParamHairSway",
 			"GroupId": "",
-			"Name": "发尾与披肩 / Hair sway"
+			"Name": "发尾 / Hair sway"
+		},
+		{
+			"Id": "ParamHemSway",
+			"GroupId": "",
+			"Name": "裙摆 / Skirt hem"
+		},
+		{
+			"Id": "ParamGaze",
+			"GroupId": "",
+			"Name": "目光 / Gaze"
+		},
+		{
+			"Id": "ParamStringResonance",
+			"GroupId": "",
+			"Name": "弦震 / String resonance"
 		},
 		{
 			"Id": "ParamEyeOpen",

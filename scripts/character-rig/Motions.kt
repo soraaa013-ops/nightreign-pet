@@ -1,7 +1,10 @@
 import io.github.psd2live.format.model.Clip
 import io.github.psd2live.format.model.Curve
 import io.github.psd2live.format.model.CurveSegment
-import kotlin.math.min
+import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.exp
+import kotlin.math.sin
 
 enum class Action(val id: String, val group: String) {
     IDLE("idle", "Idle"), TOUCH("touch", "Touch"), NIGHT_ONE("battle", "Battle"),
@@ -9,132 +12,366 @@ enum class Action(val id: String, val group: String) {
     ULTIMATE("ultimate", "Ultimate"), VICTORY("victory", "Victory"),
 }
 
-/** The stance travels through feet, pelvis, shoulder and wrist. Hair trails each change of direction. */
-private data class Pose(
-    val lean: Double = 0.0, val step: Double = 0.0, val level: Double = 0.0, val arm: Double = 0.0,
-    val pluck: Double = 0.0, val harp: Double = 0.0, val tilt: Double = 0.0, val wind: Double = 0.0,
-)
+private const val FPS = 30
+private typealias Key = Pair<Int, Double>
 
-private val rest = Pose()
-private val listen = Pose(lean = -.28, step = -.14, arm = .19, harp = .21, tilt = -.64, wind = .23)
-private val readStrings = Pose(lean = .24, level = -.26, arm = -.22, pluck = -.44, harp = -.34, tilt = .65, wind = -.17)
-private val testNote = Pose(lean = -.19, level = .13, arm = .35, pluck = .72, harp = .26, tilt = -.32, wind = .28)
-private val glance = Pose(lean = .36, step = .44, level = -.12, arm = .14, pluck = .15, tilt = -.67, wind = -.41)
-private val stepLeft = Pose(lean = -.35, step = -.85, level = -.24, arm = .2, pluck = -.26, harp = -.16, tilt = .18, wind = .47)
-private val stepRight = Pose(lean = .35, step = .85, level = -.24, arm = -.08, pluck = .13, harp = .17, tilt = -.25, wind = -.52)
-private val upbeat = Pose(lean = -.32, step = -.26, level = .32, arm = .82, pluck = -.55, harp = .26, tilt = -.48, wind = .33)
-private val sweep = Pose(lean = .79, step = .52, level = .38, arm = .57, pluck = .88, harp = .93, tilt = -.67, wind = -.78)
-private val lowGuard = Pose(lean = .25, step = .45, level = -.93, arm = .56, pluck = -.68, harp = -.48, tilt = .58, wind = -.43)
-private val flourish = Pose(lean = -.45, step = -.19, level = .23, arm = .98, pluck = .43, harp = .87, tilt = -.64, wind = .59)
-private val salute = Pose(lean = .18, step = .29, level = -.67, arm = -.28, pluck = .22, harp = -.31, tilt = .85, wind = -.22)
-
-private val readyToPluck = Pose(arm = .69, pluck = -.86, harp = .08, tilt = .23)
-private val strikeString = Pose(arm = -.26, pluck = .97, harp = -.12, lean = .15, wind = -.18)
-private val tuckLyre = Pose(step = -.46, lean = -.26, level = -.26, arm = .22, pluck = -.33, harp = -.56)
-private val callSpirit = Pose(arm = .96, pluck = -.55, harp = .42, tilt = -.32, lean = -.16)
-
-private val bodyTracks = listOf(
-    Control.LEAN to Pose::lean, Control.STEP to Pose::step, Control.LEVEL to Pose::level,
-    Control.ARM to Pose::arm, Control.PLUCK to Pose::pluck, Control.HARP to Pose::harp,
-    Control.TILT to Pose::tilt, Control.WIND to Pose::wind,
-)
-
-private fun track(control: Control, keys: List<Pair<Double, Double>>): Curve {
-    require(keys.size >= 2 && keys.first().first == 0.0)
-    require(keys.all { it.second in control.keys.first().toDouble()..control.keys.last().toDouble() })
-    val needed = keys.filterIndexed { i, (_, value) ->
-        i == 0 || i == keys.lastIndex || value != keys[i - 1].second || value != keys[i + 1].second
+/** Shape-preserving cubic tangents carry speed through passing poses and flatten at reversals and holds. */
+private class Track(val keys: List<Key>) {
+    private val slopes = keys.zipWithNext { a, b ->
+        require(b.first > a.first) { "Out-of-order keys: $a, $b" }
+        (b.second - a.second) / (b.first - a.first)
     }
-    val segments = needed.zipWithNext { (start, from), (end, to) ->
-        require(start < end)
-        val third = (end - start) / 3.0
-        CurveSegment.Bezier((start + third).toFloat(), from.toFloat(), (end - third).toFloat(),
-            to.toFloat(), end.toFloat(), to.toFloat())
+    private val tangents = keys.indices.map { i ->
+        if (i == 0 || i == keys.lastIndex || slopes[i - 1] * slopes[i] <= 0) 0.0
+        else {
+            val left = keys[i].first - keys[i - 1].first
+            val right = keys[i + 1].first - keys[i].first
+            val a = 2.0 * right + left
+            val b = right + 2.0 * left
+            (a + b) / (a / slopes[i - 1] + b / slopes[i])
+        }
     }
-    return Curve(control.id, 0f, keys.first().second.toFloat(), segments)
+
+    fun sample(frame: Int): Double {
+        val index = keys.binarySearchBy(frame) { it.first }
+        if (index >= 0) return keys[index].second
+        val i = -index - 2
+        val (start, a) = keys[i]
+        val (end, b) = keys[i + 1]
+        val dt = (end - start).toDouble()
+        val t = (frame - start) / dt
+        val s = 1 - t
+        return (1 + 2 * t) * s * s * a + s * s * t * dt * tangents[i] +
+            t * t * (3 - 2 * t) * b - t * t * s * dt * tangents[i + 1]
+    }
+
+    fun curve(control: Control): Curve {
+        val segments = keys.zipWithNext().mapIndexed { i, (a, b) ->
+            val third = (b.first - a.first) / 3.0
+            CurveSegment.Bezier(
+                ((a.first + third) / FPS).toFloat(), (a.second + third * tangents[i]).toFloat(),
+                ((b.first - third) / FPS).toFloat(), (b.second - third * tangents[i + 1]).toFloat(),
+                b.first.toFloat() / FPS, b.second.toFloat(),
+            )
+        }
+        return Curve(control.id, 0f, keys.first().second.toFloat(), segments)
+    }
 }
 
-private fun blink(at: Double, hold: Double = .085) = listOf(
-    at - .14 to 1.0, at to 0.0, at + hold to 0.0, at + hold + .19 to 1.0,
-)
+private data class Note(val contact: Int, val strength: Double)
+private val controls = listOf(Control.LEAN, Control.STEP, Control.LEVEL, Control.ARM, Control.PLUCK,
+    Control.HARP, Control.TILT, Control.NOD, Control.GAZE, Control.EYES, Control.WIND, Control.HEM, Control.RESONANCE, Control.SPIRIT)
 
-private fun motion(action: Action, name: String, length: Double, vararg beats: Pair<Double, Pose>,
-                   eyes: List<Pair<Double, Double>> = emptyList(),
-                   spirit: List<Pair<Double, Double>> = emptyList()): Clip {
-    val frames = listOf(0.0 to rest) + beats + (length to rest)
-    require(frames.zipWithNext().all { (a, b) -> a.first < b.first })
-    val tracks = bodyTracks.map { (control, sample) ->
-        val delay = when (control) { Control.WIND -> .115; Control.TILT -> .035; else -> 0.0 }
-        track(control, frames.mapIndexed { i, (time, pose) ->
-            val late = if (i == 0 || i == frames.lastIndex) 0.0 else min(delay, (frames[i + 1].first - time) * .34)
-            (time + late) to sample(pose)
-        })
-    }.toMutableList()
-    tracks += track(Control.EYES, listOf(0.0 to 1.0) + eyes + (length to 1.0))
-    // Every clip also keys rest to zero, so a cancelled summon can fade into an ordinary action.
-    tracks += track(Control.SPIRIT, listOf(0.0 to 0.0) + spirit + (length to 0.0))
-    return Clip(name, name, action.group, name, length.toFloat(), 30f, false, .095f, .145f, tracks)
+private class Performance(private val action: Action, private val name: String, private val frames: Int) {
+    private val lanes = mutableMapOf<Control, MutableList<Key>>()
+    private val notes = mutableListOf<Note>()
+    // Variations in the same scene meet in a shared playing stance, including a raised playing wrist.
+    private val stance = when (action) {
+        Action.NIGHT_ONE, Action.NIGHT_TWO, Action.NIGHTLORD -> mapOf(Control.ARM to .16,
+            Control.HARP to -.12, Control.LEVEL to -.10, Control.GAZE to .18, Control.PLUCK to -.12)
+        else -> emptyMap()
+    }
+
+    fun lane(control: Control, vararg keys: Key) {
+        lanes.getOrPut(control) { mutableListOf() }.addAll(keys)
+    }
+
+    fun blink(close: Int, hold: Int = 2) = lane(Control.EYES,
+        close - 3 to 1.0, close to 0.0, close + hold to 0.0, close + hold + 6 to 1.0)
+
+    /** The finger loads before contact. Its release and the vibration of the string have separate tracks. */
+    fun note(contact: Int, strength: Double, pickup: Int = 9, release: Int = 4) {
+        require(pickup >= 3 && release >= 2 && strength in 0.0..1.0)
+        lane(Control.PLUCK, contact - pickup to -.48 * strength, contact - 2 to -.88 * strength,
+            contact to 0.0, contact + release to .95 * strength)
+        notes += Note(contact, strength)
+    }
+
+    private fun authored(control: Control): Track {
+        val anchor = stance[control] ?: control.neutral.toDouble()
+        val points = lanes[control].orEmpty().sortedBy { it.first }
+        require(points.all { it.first in 1 until frames && it.second in control.keys.first().toDouble()..control.keys.last().toDouble() }) {
+            "Invalid $control key in $name"
+        }
+        return Track(listOf(0 to anchor) + points + (frames to anchor))
+    }
+
+    /** Bake material lag from the authored figure. Hair follows the head, the heavier hem follows weight transfer. */
+    private fun follow(stiffness: Double, damping: Double, driver: (Int) -> Double): Track {
+        var follower = driver(0)
+        var velocity = 0.0
+        val samples = mutableListOf(0 to 0.0)
+        for (frame in 1 until frames) {
+            val target = driver(frame)
+            velocity += (target - follower) * stiffness - velocity * damping
+            follower += velocity
+            if (frame % 3 == 0) samples += frame to (follower - target).coerceIn(-1.0, 1.0)
+        }
+        return Track(samples + (frames to 0.0))
+    }
+
+    fun clip(hasSpirit: Boolean): Clip {
+        val tracks = controls.associateWith { authored(it) }.toMutableMap()
+        fun value(c: Control, f: Int) = tracks.getValue(c).sample(f)
+        tracks[Control.WIND] = follow(.065, .31) { f ->
+            1.55 * value(Control.LEAN, f) + 1.1 * value(Control.TILT, f) + .80 * value(Control.STEP, f)
+        }
+        tracks[Control.HEM] = follow(.042, .30) { f ->
+            1.65 * value(Control.STEP, f) + .84 * value(Control.LEAN, f) + .52 * value(Control.LEVEL, f)
+        }
+        if (notes.isNotEmpty()) {
+            val framesToSample = notes.flatMap { (contact, _) -> (contact..contact + 15).toList() }.toSortedSet()
+            val ring = framesToSample.filter { it in 1 until frames }.map { f ->
+                val amplitude = notes.sumOf { (contact, strength) ->
+                    val t = f - contact
+                    if (t !in 1..14) 0.0 else strength * exp(-t / 4.3) * sin(t * PI / 2.25)
+                }
+                f to amplitude.coerceIn(-1.0, 1.0)
+            }
+            tracks[Control.RESONANCE] = Track(listOf(0 to 0.0) + ring + (frames to 0.0))
+        }
+        val curves = tracks.filterKeys { it != Control.SPIRIT || hasSpirit }.map { (control, track) -> track.curve(control) }
+        return Clip(name, name, action.group, name, frames.toFloat() / FPS, FPS.toFloat(), false, .10f, .16f, curves)
+    }
 }
 
 fun motions(hasSpirit: Boolean): List<Clip> {
-    val pieces = listOf(
-        // Daylight: listen, tune one high and one low string, then take two unhurried steps.
-        motion(Action.IDLE, "idle", 5.8, .88 to listen, 2.1 to listen.copy(tilt = -.78, harp = .4), 3.37 to testNote,
-            4.45 to readStrings.copy(level = -.09), eyes = blink(2.28)),
-        motion(Action.IDLE, "idle_tune", 4.85, .72 to readStrings, 1.08 to testNote, 1.91 to readStrings.copy(arm = .52, harp = -.61),
-            2.26 to testNote.copy(arm = .66, tilt = -.49), 3.37 to listen, eyes = blink(3.22)),
-        motion(Action.IDLE, "idle_watch", 6.15, .91 to stepLeft.copy(level = -.12), 1.76 to listen.copy(step = -.54),
-            3.07 to glance.copy(step = .65), 4.32 to glance.copy(tilt = .48, harp = .31), 5.12 to testNote, eyes = blink(4.68)),
-        motion(Action.TOUCH, "touch", 1.65, .18 to lowGuard.copy(level = -.37), .49 to listen.copy(lean = -.54, tilt = -.9),
-            .85 to testNote, 1.16 to listen, eyes = blink(.19)),
-        motion(Action.TOUCH, "touch_greet", 2.12, .25 to stepRight.copy(step = .35), .62 to flourish,
-            1.11 to flourish.copy(tilt = -.91, harp = .44), 1.59 to salute.copy(level = -.4), eyes = blink(1.32)),
+    val clips = mutableListOf<Clip>()
+    fun scene(action: Action, name: String, frames: Int, script: Performance.() -> Unit) {
+        clips += Performance(action, name, frames).apply(script).clip(hasSpirit)
+    }
+    val eyes = Control.GAZE
+    val head = Control.TILT
+    val nod = Control.NOD
+    val weight = Control.LEAN
+    val height = Control.LEVEL
+    val foot = Control.STEP
+    val elbow = Control.ARM
+    val lyre = Control.HARP
+    val wrist = Control.PLUCK
 
-        // Plant the feet so the wrist crossing the strings reads as a single accent.
-        motion(Action.NIGHT_ONE, "battle", 2.85, .48 to readyToPluck, .82 to readyToPluck,
-            1.02 to strikeString, 1.40 to strikeString, 2.08 to readStrings, eyes = blink(2.27)),
-        motion(Action.NIGHT_ONE, "battle_feint", 2.55, .48 to readyToPluck, .78 to readStrings,
-            1.14 to readyToPluck, 1.34 to strikeString, 1.67 to strikeString, 2.04 to listen),
-        motion(Action.NIGHT_ONE, "battle_guard", 2.95, .55 to tuckLyre, 1.20 to tuckLyre,
-            1.59 to readyToPluck, 1.82 to strikeString, 2.22 to strikeString, eyes = blink(.84)),
-        motion(Action.NIGHT_ONE, "battle_accent", 2.69, .45 to readStrings, .80 to readyToPluck,
-            1.04 to strikeString, 1.49 to strikeString, 1.93 to rest, eyes = blink(2.20)),
+    // Daylight. The first gesture simply listens. Playing a note and changing footing belong to later variations.
+    scene(Action.IDLE, "idle", 171) {
+        lane(eyes, 8 to .0, 13 to -.83, 48 to -.77, 56 to -.37, 80 to -.42, 91 to .10, 137 to .04)
+        lane(head, 14 to .0, 34 to -.62, 56 to -.73, 85 to -.51, 116 to .09, 140 to -.04)
+        lane(weight, 22 to .0, 50 to -.23, 72 to -.22, 111 to .08, 142 to .02)
+        lane(lyre, 34 to .0, 73 to -.24, 113 to -.13)
+        lane(elbow, 29 to .0, 62 to -.19, 81 to -.18, 136 to .05)
+        blink(97, 3)
+    }
+    scene(Action.IDLE, "idle_tune", 146) {
+        lane(eyes, 9 to .85, 57 to .95, 70 to .76, 89 to -.46, 122 to -.17)
+        lane(head, 8 to .0, 32 to .52, 77 to .49, 112 to -.33)
+        lane(nod, 12 to .0, 36 to .48, 78 to .41, 110 to -.18)
+        lane(lyre, 13 to -.03, 34 to -.42, 65 to -.30, 100 to -.18)
+        lane(elbow, 17 to .01, 40 to .26, 56 to .19, 74 to .32, 102 to .04)
+        note(47, .48); note(78, .30, 12, 5)
+        blink(104, 3)
+    }
+    scene(Action.IDLE, "idle_watch", 157) {
+        lane(eyes, 8 to -.87, 40 to -.78, 49 to .56, 99 to .61, 114 to .14)
+        lane(head, 7 to .0, 27 to -.57, 47 to -.63, 77 to .54, 103 to .43)
+        lane(weight, 15 to .0, 34 to -.25, 54 to -.18, 74 to .41, 106 to .31, 132 to .04)
+        lane(foot, 49 to .0, 68 to .50, 80 to .54, 111 to .0, 127 to .0)
+        lane(height, 52 to -.16, 69 to .11, 83 to -.12, 106 to -.04)
+        lane(lyre, 60 to -.11, 93 to .13, 123 to .10)
+        blink(42)
+    }
 
-        // Two or three separated notes. Only the playing hand reverses direction on each note.
-        motion(Action.NIGHT_TWO, "night2_triplet", 2.82, .42 to readyToPluck, .62 to strikeString,
-            .92 to readyToPluck, 1.10 to strikeString, 1.42 to readyToPluck, 1.62 to strikeString, 2.05 to strikeString),
-        motion(Action.NIGHT_TWO, "night2_riposte", 2.99, .46 to tuckLyre, .94 to tuckLyre, 1.30 to readyToPluck,
-            1.51 to strikeString, 1.89 to readyToPluck, 2.11 to strikeString, 2.46 to strikeString),
-        motion(Action.NIGHT_TWO, "night2_arc", 3.09, .52 to readStrings, .88 to readyToPluck, 1.14 to strikeString,
-            1.53 to readyToPluck, 1.87 to strikeString, 2.28 to strikeString),
-        motion(Action.NIGHT_TWO, "night2_offbeat", 2.84, .42 to readyToPluck, .65 to strikeString, .87 to readyToPluck,
-            1.27 to readyToPluck, 1.48 to strikeString, 1.89 to strikeString, eyes = blink(2.34)),
+    scene(Action.TOUCH, "touch", 55) {
+        lane(eyes, 4 to -.92, 19 to -.73, 27 to .03, 43 to .07)
+        lane(head, 3 to .12, 13 to -.75, 20 to -.72, 32 to -.34, 45 to .08)
+        lane(height, 4 to -.34, 12 to .12, 26 to -.07)
+        lane(weight, 5 to .13, 16 to -.28, 29 to -.16)
+        lane(lyre, 8 to -.32, 19 to -.26, 39 to .08)
+        lane(elbow, 4 to -.13, 10 to .28, 25 to .19)
+        blink(6, 1)
+    }
+    scene(Action.TOUCH, "touch_greet", 68) {
+        lane(eyes, 6 to -.52, 15 to .01, 49 to -.04)
+        lane(head, 9 to -.08, 23 to -.44, 38 to .26, 55 to .16)
+        lane(elbow, 8 to -.19, 21 to .52, 31 to .58, 49 to -.03)
+        lane(lyre, 12 to -.08, 29 to .46, 36 to .43, 54 to .02)
+        lane(wrist, 14 to .05, 28 to -.36, 37 to -.31, 51 to .21)
+        lane(height, 29 to .07, 43 to -.30, 53 to -.26)
+        blink(40, 5)
+    }
 
-        motion(Action.NIGHTLORD, "lord_charge", 3.6, .45 to tuckLyre, 1.02 to tuckLyre,
-            1.29 to readyToPluck, 1.54 to callSpirit, 2.29 to callSpirit, 2.85 to listen,
-            spirit = listOf(1.35 to 0.0, 1.85 to .93, 2.28 to .93, 2.88 to 0.0)),
-        motion(Action.NIGHTLORD, "lord_lunge", 3.23, .58 to readyToPluck, .96 to readyToPluck,
-            1.23 to strikeString.copy(step = .62), 1.85 to strikeString.copy(step = .62), 2.45 to tuckLyre),
-        motion(Action.NIGHTLORD, "lord_recoil", 3.55, .52 to callSpirit, 1.22 to callSpirit,
-            1.60 to tuckLyre, 2.18 to tuckLyre, 2.72 to listen,
-            spirit = listOf(.38 to 0.0, .85 to 1.0, 1.44 to 1.0, 2.12 to 0.0)),
-        motion(Action.NIGHTLORD, "lord_evade", 3.12, .37 to tuckLyre, .66 to tuckLyre.copy(step = -.95),
-            1.14 to tuckLyre.copy(step = -.95), 1.67 to readyToPluck, 1.92 to strikeString, 2.44 to strikeString),
-        motion(Action.NIGHTLORD, "lord_crescendo", 3.84, .49 to readyToPluck, .80 to strikeString,
-            1.13 to readyToPluck, 1.42 to strikeString, 1.86 to callSpirit, 2.72 to callSpirit, 3.22 to listen,
-            spirit = listOf(1.64 to 0.0, 2.12 to 1.0, 2.75 to 1.0, 3.29 to 0.0)),
+    // First night. Separate the note from the approach to the string. Keep both feet planted.
+    scene(Action.NIGHT_ONE, "battle", 86) {
+        lane(eyes, 5 to .88, 33 to .94, 44 to -.33, 68 to -.24)
+        lane(head, 7 to .01, 22 to .44, 39 to .46, 59 to -.37, 73 to -.23)
+        lane(nod, 11 to .0, 28 to .24, 41 to .22, 61 to -.15)
+        lane(weight, 13 to -.18, 26 to -.27, 36 to .21, 50 to .27, 67 to .06)
+        lane(height, 20 to -.25, 32 to -.24, 41 to .10, 56 to -.04)
+        lane(elbow, 7 to .16, 21 to .62, 31 to .69, 39 to -.23, 50 to -.17, 68 to .19)
+        lane(lyre, 12 to -.23, 30 to -.26, 42 to .05, 52 to .12, 70 to -.09)
+        note(35, .92, 14)
+    }
+    scene(Action.NIGHT_ONE, "battle_feint", 78) {
+        lane(eyes, 4 to .75, 17 to .89, 24 to -.57, 37 to .83, 61 to .52)
+        lane(head, 14 to .28, 30 to -.32, 47 to .31, 63 to .16)
+        lane(elbow, 11 to .56, 18 to .64, 25 to .09, 39 to .49, 50 to -.20, 63 to -.08)
+        lane(wrist, 12 to -.53, 20 to -.60, 28 to -.20)
+        lane(lyre, 12 to -.32, 29 to -.24, 46 to -.42, 59 to -.11)
+        note(47, .69, 10, 3)
+    }
+    scene(Action.NIGHT_ONE, "battle_guard", 97) {
+        lane(eyes, 5 to -.83, 28 to -.78, 45 to .74, 77 to .49)
+        lane(head, 10 to -.18, 23 to -.68, 42 to -.61, 58 to .35, 77 to .32)
+        lane(weight, 9 to .12, 24 to -.46, 41 to -.49, 67 to .31, 85 to .13)
+        lane(height, 20 to -.56, 40 to -.56, 62 to -.18, 72 to -.04)
+        lane(lyre, 17 to -.81, 35 to -.84, 52 to -.45, 68 to -.10)
+        lane(elbow, 16 to -.30, 33 to -.31, 55 to .53, 67 to -.17, 81 to .03)
+        note(63, .73)
+    }
+    scene(Action.NIGHT_ONE, "battle_accent", 88) {
+        lane(eyes, 5 to .79, 34 to .93, 46 to .10, 65 to -.33)
+        lane(head, 15 to .36, 31 to .40, 49 to -.22, 63 to -.34)
+        lane(height, 21 to -.33, 29 to -.40, 41 to .23, 53 to .12, 65 to -.09)
+        lane(weight, 18 to -.32, 30 to -.35, 44 to .44, 61 to .26)
+        lane(elbow, 20 to .71, 28 to .79, 39 to -.36, 51 to -.29, 72 to .10)
+        lane(lyre, 22 to -.49, 34 to -.48, 47 to .30, 59 to .22)
+        note(34, 1.0, 13, 3); blink(64)
+    }
 
-        // Hold still while the guardian enters. Give its silhouette a beat before lowering the hand.
-        motion(Action.ULTIMATE, "ultimate", 3.85, .50 to tuckLyre, .94 to tuckLyre, 1.30 to callSpirit,
-            2.49 to callSpirit, 2.98 to readStrings, 3.36 to listen,
-            eyes = blink(.65, .18), spirit = listOf(1.08 to 0.0, 1.63 to 1.0, 2.47 to 1.0, 3.04 to 0.0)),
-        motion(Action.ULTIMATE, "ultimate_requiem", 4.07, .53 to readStrings, .90 to readyToPluck,
-            1.15 to strikeString, 1.57 to callSpirit, 2.73 to callSpirit, 3.22 to tuckLyre,
-            eyes = blink(.52, .17), spirit = listOf(1.39 to 0.0, 1.92 to 1.0, 2.73 to 1.0, 3.34 to 0.0)),
-        motion(Action.VICTORY, "victory", 3.6, .46 to stepRight, .84 to flourish, 1.4 to flourish.copy(arm = .83),
-            1.91 to salute.copy(level = -.83), 2.52 to salute, 3.05 to listen, eyes = blink(1.78, .57)),
-        motion(Action.VICTORY, "victory_cadence", 4.04, .5 to readStrings, .84 to testNote, 1.25 to upbeat,
-            1.61 to sweep, 2.06 to flourish, 2.69 to salute.copy(step = -.42), 3.28 to listen, eyes = blink(2.51, .39)),
-    )
-    return if (hasSpirit) pieces else pieces.map { clip -> clip.copy(curves = clip.curves.filter { it.parameter != Control.SPIRIT.id }) }
+    // Second night. The elbow carries a phrase while only the wrist resets between its notes.
+    scene(Action.NIGHT_TWO, "night2_triplet", 90) {
+        lane(eyes, 5 to .89, 43 to .93, 58 to -.26, 72 to -.31)
+        lane(head, 8 to .04, 22 to .42, 43 to .36, 61 to -.31, 75 to -.25)
+        lane(weight, 12 to -.20, 28 to -.13, 48 to .30, 66 to .17)
+        lane(elbow, 13 to .45, 21 to .49, 47 to -.08, 58 to -.17, 73 to .09)
+        lane(lyre, 16 to -.55, 31 to -.38, 50 to .11, 65 to -.01)
+        note(23, .58, 9, 3); note(34, .44, 5, 3); note(47, .92, 6, 4)
+    }
+    scene(Action.NIGHT_TWO, "night2_riposte", 95) {
+        lane(eyes, 4 to -.87, 22 to -.89, 33 to .87, 69 to .75, 80 to -.35)
+        lane(head, 13 to -.41, 27 to -.55, 46 to .51, 69 to .41)
+        lane(weight, 14 to -.50, 25 to -.54, 49 to .27, 68 to .35)
+        lane(height, 15 to -.51, 29 to -.47, 51 to .12, 73 to -.05)
+        lane(elbow, 11 to -.29, 27 to -.29, 41 to .52, 49 to .28, 68 to -.16)
+        lane(lyre, 15 to -.78, 26 to -.82, 48 to -.31, 72 to .15)
+        note(46, .91, 10, 3); note(66, .52, 11, 4)
+    }
+    scene(Action.NIGHT_TWO, "night2_arc", 96) {
+        lane(eyes, 6 to .82, 29 to .91, 54 to .63, 76 to -.48)
+        lane(head, 18 to .43, 38 to .36, 60 to -.17, 75 to -.43)
+        lane(elbow, 15 to -.27, 36 to .19, 53 to .66, 65 to .58, 84 to .18)
+        lane(lyre, 17 to -.56, 40 to -.22, 62 to .38, 79 to .23)
+        lane(weight, 17 to -.30, 33 to -.22, 58 to .42, 76 to .24)
+        note(27, .40, 10, 4); note(56, .82, 14, 6)
+    }
+    scene(Action.NIGHT_TWO, "night2_offbeat", 87) {
+        lane(eyes, 5 to .78, 34 to .90, 53 to .85, 64 to -.40)
+        lane(head, 13 to .36, 34 to .31, 45 to .42, 65 to -.25)
+        lane(elbow, 13 to .44, 27 to .20, 36 to .32, 46 to .34, 56 to -.17, 73 to .04)
+        lane(height, 21 to -.04, 37 to -.26, 46 to -.29, 57 to .13, 74 to -.08)
+        lane(lyre, 16 to -.39, 32 to -.25, 46 to -.32, 62 to .16)
+        note(20, .63, 9, 3); note(51, .95, 14, 3)
+    }
+
+    // Nightlord. Weight and footwork precede the larger attack; a summon can stay visible while she watches it.
+    scene(Action.NIGHTLORD, "lord_charge", 106) {
+        lane(eyes, 5 to .85, 28 to .93, 37 to -.91, 70 to -.87, 85 to -.38)
+        lane(head, 12 to .19, 30 to .45, 49 to -.66, 67 to -.71, 88 to -.31)
+        lane(weight, 15 to -.32, 26 to -.44, 42 to .40, 64 to .34, 85 to .14)
+        lane(height, 21 to -.52, 28 to -.57, 42 to .27, 57 to .21, 78 to -.04)
+        lane(elbow, 13 to -.25, 27 to -.30, 43 to .88, 58 to .93, 72 to .78, 90 to .26)
+        lane(lyre, 20 to -.67, 30 to -.66, 48 to .50, 66 to .48, 87 to .08)
+        note(37, .90, 13)
+        lane(Control.SPIRIT, 39 to .0, 50 to .85, 59 to 1.0, 70 to .96, 85 to .0)
+    }
+    scene(Action.NIGHTLORD, "lord_lunge", 100) {
+        lane(eyes, 5 to -.65, 21 to -.60, 28 to .93, 60 to .80, 74 to -.37)
+        lane(head, 13 to -.34, 24 to -.37, 42 to .56, 58 to .50, 83 to -.28)
+        lane(weight, 19 to -.53, 29 to -.58, 42 to .72, 58 to .61, 75 to .30)
+        lane(foot, 22 to .0, 37 to .83, 49 to .94, 60 to .90, 84 to .0)
+        lane(height, 23 to -.46, 28 to -.56, 40 to .21, 52 to -.18, 66 to -.16)
+        lane(elbow, 23 to .65, 31 to .72, 44 to -.27, 59 to -.22, 81 to .23)
+        lane(lyre, 28 to -.52, 47 to .43, 60 to .49, 76 to .12)
+        note(41, .94, 12, 3)
+    }
+    scene(Action.NIGHTLORD, "lord_recoil", 109) {
+        lane(eyes, 6 to .89, 23 to .91, 30 to -.90, 57 to -.95, 78 to -.49)
+        lane(head, 15 to .35, 24 to .39, 39 to -.52, 54 to -.72, 84 to -.29)
+        lane(weight, 18 to .25, 31 to .36, 45 to -.56, 55 to -.59, 83 to -.20)
+        lane(foot, 35 to .0, 47 to -.79, 61 to -.77, 88 to .0)
+        lane(height, 24 to .08, 46 to -.53, 62 to -.42, 82 to -.15)
+        lane(elbow, 14 to .53, 27 to .74, 36 to .70, 50 to -.37, 69 to -.31, 90 to .12)
+        lane(lyre, 19 to .30, 32 to .46, 52 to -.83, 68 to -.72, 90 to -.22)
+        note(25, .63)
+        lane(Control.SPIRIT, 23 to .0, 35 to 1.0, 49 to .89, 67 to .0)
+    }
+    scene(Action.NIGHTLORD, "lord_evade", 101) {
+        lane(eyes, 4 to -.95, 36 to -.89, 46 to .92, 72 to .80)
+        lane(head, 9 to -.29, 18 to -.56, 34 to -.63, 55 to .47, 73 to .36)
+        lane(weight, 9 to .22, 20 to -.71, 34 to -.67, 57 to .22, 74 to .44)
+        lane(foot, 7 to .0, 17 to -.94, 29 to -.99, 42 to -.79, 62 to .0)
+        lane(height, 8 to -.19, 16 to .13, 25 to -.61, 37 to -.55, 59 to -.07)
+        lane(lyre, 12 to -.68, 27 to -.85, 49 to -.60, 69 to .28)
+        lane(elbow, 13 to -.23, 31 to -.35, 54 to .56, 69 to -.21, 82 to -.10)
+        note(65, .90, 14)
+    }
+    scene(Action.NIGHTLORD, "lord_crescendo", 120) {
+        lane(eyes, 6 to .84, 47 to .95, 56 to -.93, 93 to -.88)
+        lane(head, 17 to .42, 43 to .39, 64 to -.51, 80 to -.73, 102 to -.31)
+        lane(height, 19 to -.18, 44 to -.42, 54 to -.48, 68 to .28, 85 to .18)
+        lane(weight, 17 to -.18, 47 to -.32, 67 to .50, 84 to .40, 104 to .14)
+        lane(elbow, 15 to .26, 32 to .38, 47 to .55, 64 to .94, 80 to .91, 98 to .52)
+        lane(lyre, 18 to -.51, 36 to -.26, 55 to .06, 72 to .66, 87 to .55)
+        note(24, .37); note(40, .64, 8, 3); note(60, 1.0, 11, 5)
+        lane(Control.SPIRIT, 61 to .0, 75 to 1.0, 88 to 1.0, 105 to .0)
+    }
+
+    scene(Action.ULTIMATE, "ultimate", 124) {
+        // Draw the instrument close. Look across to the spirit before the arm opens.
+        lane(eyes, 6 to .81, 26 to .83, 34 to -.97, 84 to -.89, 100 to -.26)
+        lane(head, 14 to .40, 27 to .47, 47 to -.62, 65 to -.72, 90 to -.53, 107 to -.14)
+        lane(nod, 12 to .16, 27 to .66, 33 to .63, 49 to -.62, 75 to -.49, 100 to -.11)
+        lane(weight, 17 to .35, 28 to .49, 47 to -.62, 65 to -.53, 90 to -.25)
+        lane(foot, 24 to .0, 41 to .41, 58 to .44, 79 to .34, 106 to .0)
+        lane(height, 21 to -.54, 30 to -.61, 49 to .32, 66 to .25, 90 to .03)
+        lane(elbow, 12 to -.24, 27 to -.41, 42 to .76, 51 to .99, 72 to .96, 89 to .77, 106 to .22)
+        lane(lyre, 18 to -.62, 29 to -.71, 48 to .34, 60 to .60, 83 to .52, 105 to -.06)
+        note(42, .97, 14, 4)
+        blink(23, 4)
+        lane(Control.SPIRIT, 42 to .0, 52 to .74, 62 to 1.0, 82 to 1.0, 94 to .53, 104 to .0)
+    }
+    scene(Action.ULTIMATE, "ultimate_requiem", 132) {
+        lane(eyes, 7 to .83, 38 to .87, 50 to -.66, 72 to -.86, 105 to -.47)
+        lane(head, 18 to .46, 36 to .51, 56 to -.19, 76 to -.58, 99 to -.49, 116 to -.13)
+        lane(nod, 11 to .13, 31 to .53, 44 to .56, 65 to -.33, 87 to -.27, 109 to .12)
+        lane(weight, 19 to .21, 39 to .36, 65 to -.40, 83 to -.44, 108 to -.18)
+        lane(height, 17 to -.33, 40 to -.38, 63 to .22, 85 to .14, 108 to -.06)
+        lane(elbow, 15 to .23, 36 to .38, 57 to .73, 76 to .79, 95 to .50, 114 to .10)
+        lane(lyre, 20 to -.45, 48 to -.21, 71 to .38, 90 to .31, 110 to -.12)
+        note(25, .39, 10, 5); note(49, .83, 15, 6)
+        blink(83, 12)
+        lane(Control.SPIRIT, 50 to .0, 61 to .50, 73 to 1.0, 91 to .99, 113 to .0)
+    }
+
+    scene(Action.VICTORY, "victory", 113) {
+        lane(eyes, 7 to .82, 27 to .84, 39 to .04, 49 to .03, 61 to .69, 91 to .12)
+        lane(head, 17 to .30, 35 to .40, 48 to .12, 67 to -.68, 79 to -.74, 86 to -.70, 100 to -.10)
+        lane(nod, 17 to .14, 37 to -.31, 48 to -.31, 62 to .65, 72 to .96, 82 to .96, 95 to .24, 103 to -.09)
+        lane(lyre, 13 to -.29, 32 to .33, 44 to .53, 69 to -.44, 82 to -.57, 99 to -.17)
+        lane(elbow, 15 to .29, 35 to .70, 47 to .76, 67 to -.40, 82 to -.42, 100 to -.05)
+        lane(weight, 25 to .23, 39 to .40, 53 to -.08, 69 to -.66, 82 to -.68, 100 to -.10)
+        lane(foot, 37 to .0, 54 to .62, 66 to .85, 80 to .87, 91 to .62, 106 to .0)
+        lane(height, 35 to .23, 44 to .24, 65 to -.90, 72 to -.96, 81 to -.96, 90 to -.55, 101 to -.01)
+        note(24, .56, 10, 5); blink(62, 20)
+    }
+    scene(Action.VICTORY, "victory_cadence", 127) {
+        lane(eyes, 5 to .85, 41 to .94, 53 to -.53, 74 to -.46, 90 to .26)
+        lane(head, 15 to .42, 38 to .44, 60 to -.47, 73 to -.45, 92 to .58, 103 to .60, 115 to .23)
+        lane(nod, 21 to .23, 54 to -.23, 72 to -.14, 92 to .68, 103 to .75, 115 to .28)
+        lane(elbow, 13 to .30, 31 to .41, 51 to .70, 66 to .78, 91 to -.26, 107 to -.19)
+        lane(lyre, 16 to -.51, 37 to -.30, 57 to .44, 73 to .39, 95 to -.40)
+        lane(weight, 21 to .19, 50 to -.30, 68 to -.40, 90 to .53, 103 to .56, 117 to .12)
+        lane(foot, 67 to .0, 85 to -.63, 97 to -.75, 110 to -.48, 122 to .0)
+        lane(height, 38 to -.19, 57 to .18, 75 to .14, 91 to -.66, 96 to -.75, 104 to -.75, 116 to -.10)
+        note(21, .45); note(34, .57, 6, 3); note(50, .78, 9, 5)
+        blink(87, 12)
+    }
+    return clips
 }

@@ -181,12 +181,14 @@ export async function inspectCharacterRig() {
     }
     const anchors = lids.map(skinAnchor)
     let maxLidDriftPx = 0,
+      maxClosedGazeDriftPx = 0,
       maxMidBlinkOpacity = 0,
       minClosedOpacity = 1
     for (const tilt of [-1, 0, 1]) {
       parameters.values.set(parameters.defaultValues)
       for (const [id, value] of Object.entries({
         ParamHeadTilt: tilt,
+        ParamHeadPitch: -tilt,
         ParamBreath: 0.7,
         ParamBodyLean: tilt,
         ParamStride: -tilt,
@@ -209,6 +211,18 @@ export async function inspectCharacterRig() {
           else maxMidBlinkOpacity = Math.max(maxMidBlinkOpacity, drawables.opacities[lid])
         }
       }
+      // With the lids closed, the gaze track must no longer displace the painted face.
+      const closed = new Float32Array(drawables.vertexPositions[head])
+      for (const gaze of [-1, 1]) {
+        parameters.values[parameters.ids.indexOf('ParamGaze')] = gaze
+        model.update()
+        drawables.vertexPositions[head].forEach((value, i) => {
+          maxClosedGazeDriftPx = Math.max(
+            maxClosedGazeDriftPx,
+            Math.abs(value - closed[i]) * model!.canvasinfo.PixelsPerUnit,
+          )
+        })
+      }
     }
 
     const version = core.Version.csmGetVersion()
@@ -222,7 +236,7 @@ export async function inspectCharacterRig() {
       textures: refs.Textures.length,
       triangles: Array.from(drawables.indexCounts).reduce((a, b) => a + b, 0) / 3,
       parameterMeshes,
-      face: { maxLidDriftPx, maxMidBlinkOpacity, minClosedOpacity },
+      face: { maxLidDriftPx, maxMidBlinkOpacity, minClosedOpacity, maxClosedGazeDriftPx },
       actions,
     }
   } finally {

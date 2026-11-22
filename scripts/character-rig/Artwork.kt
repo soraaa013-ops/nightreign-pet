@@ -15,6 +15,8 @@ data class Landmarks(
     val neck: Point = Point(508f, 345f), val hips: Point = Point(510f, 754f), val feet: Point = Point(512f, 1027f),
     val pluckShoulder: Point = Point(442f, 491f), val holdShoulder: Point = Point(593f, 496f),
     val wrist: Point = Point(581f, 493f), val harpPivot: Point = Point(701f, 580f), val strings: Point = Point(682f, 463f),
+    val pluckElbow: Point = Point(459f, 590f), val holdElbow: Point = Point(608f, 564f),
+    val holdWrist: Point = Point(671f, 579f), val knuckles: Point = Point(621f, 476f),
     val eyes: List<Eye> = listOf(Eye(Point(485f, 267f), 33.5f, 18f, -.336f), Eye(Point(578f, 247f), 23f, 16.5f, -.385f)),
 )
 data class Artwork(val width: Int, val height: Int, val layers: List<Layer>, val landmarks: Landmarks)
@@ -57,7 +59,9 @@ fun loadArtwork(file: Path): Artwork {
     return Artwork(size[0], size[1], layers, Landmarks(
         point("neck", defaults.neck), point("hips", defaults.hips), point("feet", defaults.feet),
         point("pluckShoulder", defaults.pluckShoulder), point("holdShoulder", defaults.holdShoulder),
-        point("wrist", defaults.wrist), point("harpPivot", defaults.harpPivot), point("strings", defaults.strings), eyes,
+        point("wrist", defaults.wrist), point("harpPivot", defaults.harpPivot), point("strings", defaults.strings),
+        point("pluckElbow", defaults.pluckElbow), point("holdElbow", defaults.holdElbow),
+        point("holdWrist", defaults.holdWrist), point("knuckles", defaults.knuckles), eyes,
     ))
 }
 
@@ -124,8 +128,10 @@ data class Surface(val points: List<Point>, val geometry: MeshGeometry)
 fun makeSurface(layer: Layer, atlas: Atlas, landmarks: Landmarks): Surface {
     val detail = when (layer.role) {
         "Head" -> 16
-        "Lyre", "PluckArm", "HoldArm" -> 12
+        "Lyre" -> 6
+        "PluckArm", "HoldArm" -> 9
         "LidLeft", "LidRight" -> 5
+        "Dress" -> 16
         else -> 25
     }
     fun axis(start: Int, size: Int, fine: IntProgression): List<Int> {

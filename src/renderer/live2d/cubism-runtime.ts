@@ -92,8 +92,8 @@ export class CubismRuntime extends CubismUserModel {
       action = 'battle'
     if (this.baseAction === action) return
     this.baseAction = action
-    // The completed snapshot can arrive in the same tick as the victory performance.
-    if (this.activeAction !== 'victory') this.startAction(action)
+    // Finish releasing the strings before returning to the current phase.
+    if (this.activeAction !== 'ultimate' && this.activeAction !== 'victory') this.startAction(action)
   }
 
   private startAction(action: CharacterAction): boolean {
@@ -115,6 +115,11 @@ export class CubismRuntime extends CubismUserModel {
     const model = this.getModel()
     if (!model) return
     model.loadParameters()
+    // Give unkeyed poses a quiet breath. An authored breath or held note overrides it below.
+    if (this.breath && !reducedMotion) {
+      this.breathTime += elapsed
+      model.setParameterValueById(this.breath, 0.35 * (1 - Math.cos(this.breathTime * 1.5)))
+    }
     const moving = this._motionManager.updateMotion(model, elapsed)
     model.saveParameters()
     this.expressionTime = Math.max(0, this.expressionTime - elapsed)
@@ -125,10 +130,6 @@ export class CubismRuntime extends CubismUserModel {
       if (!reducedMotion && this.actions.has(this.baseAction)) this.startAction(this.baseAction)
     }
     if (!moving && !reducedMotion) this.blink?.updateParameters(model, elapsed)
-    if (!moving && this.breath && !reducedMotion) {
-      this.breathTime += elapsed
-      model.setParameterValueById(this.breath, (Math.sin(this.breathTime * 1.8) + 1) / 2)
-    }
     this._expressionManager.updateMotion(model, elapsed)
     this._physics?.evaluate(model, elapsed)
     this._pose?.updateParameters(model, elapsed)

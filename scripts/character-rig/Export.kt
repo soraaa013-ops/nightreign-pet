@@ -1,6 +1,7 @@
 import io.github.psd2live.format.compile.Compiler
 import io.github.psd2live.format.compile.ExportOptions
 import io.github.psd2live.format.compile.ExportTarget
+import io.github.psd2live.format.compile.Feature
 import io.github.psd2live.format.compile.Handling
 import io.github.psd2live.format.model.Clip
 import io.github.psd2live.format.model.RigIR
@@ -17,7 +18,9 @@ private fun export(target: ExportTarget, rig: RigIR, folder: Path) {
         Files.write(path, bytes)
     }
     for (loss in report.losses) println("${target.id} ${loss.objectId}: ${loss.note}")
-    check(report.losses.none { it.handling == Handling.DROPPED }) { report.toJson() }
+    check(report.losses.none { it.handling == Handling.DROPPED || it.feature == Feature.PARAMETER_GRID }) {
+        report.toJson()
+    }
     println("${target.id}: ${report.files.joinToString()}")
 }
 

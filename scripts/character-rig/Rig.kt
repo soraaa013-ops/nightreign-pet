@@ -2,9 +2,13 @@ import io.github.psd2live.format.model.*
 import kotlin.math.*
 
 enum class Control(val id: String, val title: String, val keys: List<Float>, val neutral: Float, val additive: Boolean = false) {
-    BREATH("ParamBreath", "呼吸 / Breath", listOf(0f, 1f), 0f),
+    BREATH("ParamBreath", "呼吸 / Breath", listOf(0f, 1f), 0f, true),
     TILT("ParamHeadTilt", "侧首 / Head tilt", listOf(-1f, 0f, 1f), 0f),
-    WIND("ParamHairSway", "发尾与披肩 / Hair sway", listOf(-1f, 0f, 1f), 0f),
+    NOD("ParamHeadPitch", "俯仰 / Head pitch", listOf(-1f, 0f, 1f), 0f, true),
+    WIND("ParamHairSway", "发尾 / Hair sway", listOf(-1f, 0f, 1f), 0f),
+    HEM("ParamHemSway", "裙摆 / Skirt hem", listOf(-1f, 0f, 1f), 0f),
+    GAZE("ParamGaze", "目光 / Gaze", listOf(-1f, 0f, 1f), 0f),
+    RESONANCE("ParamStringResonance", "弦震 / String resonance", listOf(-1f, 0f, 1f), 0f, true),
     EYES("ParamEyeOpen", "睁眼 / Eyes open", listOf(0f, 1f), 1f),
     HARP("ParamHarp", "持琴 / Cradle lyre", listOf(-1f, 0f, 1f), 0f),
     PLUCK("ParamPluck", "拨弦 / Pluck", listOf(-1f, 0f, 1f), 0f),
@@ -36,6 +40,44 @@ private fun rotate(p: Point, center: Point, degrees: Float): Point {
 }
 private fun Point.shift(x: Float, y: Float) = Point(this.x + x, this.y + y)
 
+private fun mix(a: Point, b: Point, t: Float) = a.shift((b.x - a.x) * t, (b.y - a.y) * t)
+
+private fun segmentDistance(p: Point, a: Point, b: Point): Float {
+    val dx = b.x - a.x
+    val dy = b.y - a.y
+    val along = (((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy)).coerceIn(0f, 1f)
+    return distance(p, a.shift(along * dx, along * dy))
+}
+
+private fun direction(a: Point, b: Point) = atan2(b.y - a.y, b.x - a.x)
+private fun degrees(radians: Float) = radians * (180f / PI.toFloat())
+
+/** Attach the palm to its target, bending the two painted bone segments at their common elbow. */
+private class Arm(val shoulder: Point, val elbow: Point, val wrist: Point, val tip: Point) {
+    val upperLength = distance(shoulder, elbow)
+    val foreLength = distance(elbow, wrist)
+    val originalBend = direction(shoulder, elbow) - direction(shoulder, wrist)
+
+    fun pose(p: Point, target: Point, handAngle: Float): Point {
+        val span = distance(shoulder, target).coerceIn(abs(upperLength - foreLength) + .1f, upperLength + foreLength - .1f)
+        val bend = acos(((upperLength * upperLength + span * span - foreLength * foreLength) /
+            (2f * upperLength * span)).coerceIn(-1f, 1f))
+        val angle = direction(shoulder, target) + sign(sin(originalBend)) * bend
+        val joint = shoulder.shift(upperLength * cos(angle), upperLength * sin(angle))
+        val upperTurn = degrees(angle - direction(shoulder, elbow))
+        val lowerTurn = degrees(direction(joint, target) - direction(elbow, wrist))
+        val upper = rotate(p, shoulder, upperTurn * smooth(8f, 45f, distance(p, shoulder)))
+        val lower = rotate(p, elbow, lowerTurn).shift(joint.x - elbow.x, joint.y - elbow.y)
+        val hand = rotate(p, wrist, handAngle).shift(target.x - wrist.x, target.y - wrist.y)
+        val above = segmentDistance(p, shoulder, elbow)
+        val below = segmentDistance(p, elbow, wrist)
+        val palm = segmentDistance(p, wrist, tip)
+        val elbowWeight = smooth(-12f, 12f, above - min(below, palm))
+        val wristWeight = smooth(-9f, 9f, below - palm)
+        return mix(upper, mix(lower, hand, wristWeight), elbowWeight)
+    }
+}
+
 private fun blink(p: Point, openness: Float, eyes: List<Eye>): Point {
     var result = p
     for (eye in eyes) {
@@ -57,16 +99,41 @@ private fun blink(p: Point, openness: Float, eyes: List<Eye>): Point {
 
 private fun geometryAxes(role: String): List<Control> = when (role) {
     "Spirit" -> listOf(Control.SPIRIT)
-    "Head" -> listOf(Control.BREATH, Control.TILT, Control.EYES)
-    "FrontHair", in lids -> listOf(Control.BREATH, Control.TILT)
-    "BackHair" -> listOf(Control.BREATH, Control.TILT, Control.WIND)
-    "Dress", "Cape", in footLayers -> listOf(Control.BREATH, Control.WIND)
-    "PluckArm", "Lyre" -> listOf(Control.BREATH, Control.HARP, Control.PLUCK)
-    "HoldArm" -> listOf(Control.BREATH, Control.HARP)
+    "Head" -> listOf(Control.TILT, Control.EYES, Control.GAZE)
+    "FrontHair", in lids -> listOf(Control.TILT)
+    "BackHair" -> listOf(Control.TILT, Control.WIND)
+    "Dress", "Cape" -> listOf(Control.HEM)
+    in footLayers -> emptyList()
+    "PluckArm" -> listOf(Control.HARP, Control.PLUCK)
+    "Lyre", "HoldArm" -> listOf(Control.HARP)
     else -> error("Unknown layer role $role")
 }
 
-private class Binding(val marks: Landmarks) {
+private class Binding(val marks: Landmarks, val hairEnd: Float) {
+    private val player = Arm(marks.pluckShoulder, marks.pluckElbow, marks.wrist, marks.strings)
+    private val support = Arm(marks.holdShoulder, marks.holdElbow, marks.holdWrist, marks.harpPivot.shift(47f, -16f))
+
+    private fun supportingArm(p: Point, harp: Float, lift: Float): Point {
+        val turn = harp * 11f
+        val raise = -lift * 18f
+        val wrist = rotate(rotate(marks.holdWrist, marks.harpPivot, turn), marks.holdShoulder, raise)
+        return support.pose(p, wrist, turn + raise)
+    }
+
+    private fun playingArm(p: Point, pluck: Float, harp: Float, lift: Float): Point {
+        val raise = -lift * 18f
+        val carriedWrist = rotate(rotate(marks.wrist, marks.harpPivot, harp * 11f), marks.holdShoulder, raise)
+        val contact = rotate(rotate(marks.strings, marks.harpPivot, harp * 11f), marks.holdShoulder, raise)
+        // Raise the wrist around the fingertip on the string. A scored contact stays on the lyre
+        // in both the low playing position and the high summoning position.
+        val wristTurn = lift * 22f
+        val wrist = rotate(carriedWrist, contact, wristTurn).shift(pluck * 15f, pluck * 22f)
+        // The fingers close into the palm after passing the string, while the wrist continues its arc.
+        val digit = smooth(-5f, 46f, p.x - marks.knuckles.x)
+        val curl = rotate(p, marks.knuckles, max(0f, pluck) * digit * 12f)
+        return player.pose(curl, wrist, pluck * 16f + harp * 11f + raise + wristTurn)
+    }
+
     fun keyPose(role: String, p: Point, values: Map<Control, Float>): Point {
         fun value(control: Control) = values[control] ?: control.neutral
         val tilt = value(Control.TILT) * 10f
@@ -80,84 +147,97 @@ private class Binding(val marks: Landmarks) {
             return Point(marks.hips.x + (p.x - marks.hips.x) * contraction + hidden * 17f,
                 marks.neck.y + (p.y - marks.neck.y) * contraction + hidden * 112f)
         }
-        val q = when (role) {
-            "Head" -> rotate(blink(p, value(Control.EYES), marks.eyes), marks.neck, tilt)
+        return when (role) {
+            "Head" -> {
+                val open = value(Control.EYES)
+                val looking = gaze(p, value(Control.GAZE) * open, marks.eyes)
+                rotate(blink(looking, open, marks.eyes), marks.neck, tilt)
+            }
             "FrontHair", in lids -> rotate(p, marks.neck, tilt)
             "BackHair" -> {
-                val fall = smooth(marks.neck.y - 140f, marks.feet.y, p.y)
-                val hair = rotate(p, marks.neck, tilt * .73f * (1f - fall))
-                hair.shift(wind * fall * (34f + 6f * sin(p.y / 122f)), -abs(wind) * fall * 14f + fall * wind * (p.x - marks.hips.x) * .043f)
+                val fall = smooth(marks.neck.y - 70f, hairEnd, p.y)
+                val hair = rotate(p, marks.neck, tilt * (1f - .85f * fall))
+                val spread = (p.x - marks.neck.x) / 160f
+                hair.shift(wind * fall * (42f + spread * 7f),
+                    -abs(wind) * fall * 8f + wind * fall * spread * 7f)
             }
-            "Dress", "Cape" -> {
-                val hem = smooth(marks.hips.y - 150f, marks.feet.y - 69f, p.y) * (1f - smooth(marks.feet.y - 34f, marks.feet.y + 5f, p.y))
-                val width = if (role == "Cape") 37f else 24f
-                p.shift(wind * hem * width, wind * hem * (p.x - marks.hips.x) * .018f)
-            }
+            "Dress", "Cape" -> bodyPose(role, p, Control.HEM, value(Control.HEM))
             in footLayers -> p
-            "Lyre" -> {
-                val aperture = (1f - smooth(13f, 43f, abs(p.x - marks.strings.x))) * (1f - smooth(20f, 70f, abs(p.y - marks.strings.y)))
-                rotate(p.shift(4.6f * pluck * aperture, 0f), marks.harpPivot, 8f * harp)
-            }
-            "HoldArm" -> {
-                val reach = smooth(13f, 115f, distance(p, marks.holdShoulder))
-                rotate(p, marks.harpPivot, 8f * harp * reach)
-            }
-            "PluckArm" -> {
-                val forearm = smooth(-35f, 72f, p.x - marks.wrist.x)
-                val sleeve = smooth(8f, 129f, distance(p, marks.pluckShoulder))
-                val fingers = rotate(p, marks.wrist, pluck * 22f * forearm)
-                val arm = rotate(fingers, marks.pluckShoulder, pluck * 11.5f * sleeve)
-                rotate(arm, marks.harpPivot, harp * 8f * sleeve)
-            }
+            "Lyre" -> rotate(p, marks.harpPivot, 11f * harp)
+            "HoldArm" -> supportingArm(p, harp, 0f)
+            "PluckArm" -> playingArm(p, pluck, harp, 0f)
             else -> error("Unknown layer role $role")
         }
-        val rise = 1f - smooth(marks.neck.y + 85f, marks.feet.y, q.y)
-        val ribs = 1f - smooth(80f, 370f, abs(q.y - marks.pluckShoulder.y - 37f))
-        val breath = value(Control.BREATH)
-        return q.shift(breath * (rise + ribs * (q.x - marks.hips.x) * .009f), -10f * breath * rise)
     }
 
     /** Blend shapes add body and arm choreography to each of the already keyed local poses. */
     fun bodyPose(role: String, p: Point, control: Control, amount: Float): Point {
         val lower = smooth(marks.hips.y - 75f, marks.feet.y, p.y)
         return when (control) {
+            Control.NOD -> {
+                // Project a shallow facial volume about the collar. The forehead stays further back
+                // than the cheeks so the fringe, eye line and chin travel different distances.
+                val eyeY = (marks.eyes[0].center.y + marks.eyes[1].center.y) * .5f
+                val headRadius = abs(marks.eyes[1].center.x - marks.eyes[0].center.x) * 1.40f
+                val x = (p.x - marks.neck.x) / headRadius
+                val y = (p.y - eyeY) / headRadius
+                val collar = 1f - smooth(marks.neck.y - .52f * headRadius, marks.neck.y + .05f * headRadius, p.y)
+                val forwardDepth = headRadius * (.68f * exp(-1.2f * x * x - 1.7f * y * y) - .045f)
+                val angle = amount * .37f
+                val vertical = (p.y - marks.neck.y) * (cos(angle) - 1f) + forwardDepth * sin(angle)
+                val perspective = (p.x - marks.neck.x) * .020f * amount * exp(-x * x - y * y)
+                p.shift(perspective * collar, vertical * collar)
+            }
+            Control.BREATH -> {
+                val rise = 1f - smooth(marks.neck.y + 85f, marks.feet.y, p.y)
+                val ribs = 1f - smooth(80f, 370f, abs(p.y - marks.pluckShoulder.y - 37f))
+                p.shift(amount * (rise + ribs * (p.x - marks.hips.x) * .009f), -7f * amount * rise)
+            }
             Control.LEAN -> {
                 val planted = smooth(marks.hips.y + 48f, marks.feet.y - 10f, p.y)
                 rotate(p, marks.hips, amount * 4.6f * (1f - planted))
                     .shift(amount * 10f * (1f - planted), 0f)
             }
             Control.STEP -> {
-                val rightFoot = when (role) {
-                    "LeftFoot" -> 0f
-                    "RightFoot" -> 1f
-                    else -> smooth(marks.feet.x - 32f, marks.feet.x + 32f, p.x)
+                // Her feet meet at the big toes. Roll the free ankle around that contact.
+                val right = smooth(marks.feet.x - 9f, marks.feet.x + 9f, p.x)
+                val free = when (role) {
+                    "LeftFoot" -> if (amount < 0f) 1f else 0f
+                    "RightFoot" -> if (amount > 0f) 1f else 0f
+                    else -> if (amount > 0f) right else 1f - right
                 }
-                val leading = if (amount > 0f) rightFoot else 1f - rightFoot
-                val ankle = smooth(marks.feet.y - 146f, marks.feet.y - 20f, p.y)
-                val lateral = 22f * (1f - ankle) + 58f * leading * ankle
-                p.shift(amount * lateral, -abs(amount) * (5f * (1f - lower) + 28f * ankle * leading))
+                val ankle = smooth(marks.feet.y - 155f, marks.feet.y - 80f, p.y)
+                val toe = marks.feet.shift(0f, -9f)
+                val rolled = rotate(p, toe, -amount * free * ankle * 14f)
+                val heelOut = amount * free * ankle * max(0f, toe.y - p.y) * .42f
+                rolled.shift(amount * 18f * (1f - ankle) + heelOut, -abs(amount) * 4f * (1f - lower))
             }
             Control.LEVEL -> {
-                if (amount < 0) {
-                    val folded = 1f - lower
-                    p.shift(-amount * (p.x - marks.hips.x) * .035f * lower, -amount * 39f * folded)
-                } else {
-                    val foot = smooth(marks.hips.y + 28f, marks.feet.y - 13f, p.y)
-                    p.shift(-amount * (p.x - marks.hips.x) * .055f * foot, -amount * (19f + 28f * foot))
-                }
+                val planted = smooth(marks.hips.y, marks.feet.y - 92f, p.y)
+                val fold = if (amount < 0f) 44f else 25f
+                p.shift(-amount * (p.x - marks.hips.x) * .027f * lower * (1f - planted), -amount * fold * (1f - planted))
             }
             Control.ARM -> when (role) {
-                "PluckArm" -> {
-                    val reach = smooth(13f, 134f, distance(p, marks.pluckShoulder))
-                    val arm = rotate(p, marks.pluckShoulder, -amount * 19f * reach)
-                    rotate(arm, marks.wrist, -amount * 10f * smooth(-16f, 75f, p.x - marks.wrist.x))
-                }
-                "HoldArm" -> {
-                    val reach = smooth(6f, 121f, distance(p, marks.holdShoulder))
-                    rotate(p, marks.holdShoulder, -amount * 13.5f * reach)
-                }
-                "Lyre" -> rotate(p, marks.holdShoulder, -amount * 13.5f)
+                "PluckArm" -> playingArm(p, 0f, 0f, amount)
+                "HoldArm" -> supportingArm(p, 0f, amount)
+                "Lyre" -> rotate(p, marks.holdShoulder, -amount * 18f)
                 else -> p
+            }
+            Control.HEM -> {
+                val skirtEnd = marks.feet.y - 102f
+                val down = smooth(marks.hips.y - 75f, skirtEnd - 33f, p.y)
+                val across = (p.x - marks.hips.x) / 265f
+                val edge = smooth(57f, 132f, abs(p.x - marks.feet.x))
+                // The two calves share this mesh. Cloth moves freely on either side of them.
+                val cloth = down * (1f - smooth(skirtEnd - 36f + edge * 33f, skirtEnd + edge * 12f, p.y))
+                p.shift(amount * cloth * (18f + edge * 10f), amount * cloth * across * 11f)
+            }
+            Control.RESONANCE -> {
+                val along = ((p.y - (marks.harpPivot.y - 222f)) / 121f).coerceIn(0f, 1f)
+                val left = marks.strings.x - 22f + 24f * along
+                val right = marks.strings.x + 69f - 17f * along
+                val withinStrings = smooth(left, left + 7f, p.x) * (1f - smooth(right - 7f, right, p.x))
+                p.shift(amount * 4.6f * sin(PI.toFloat() * along) * withinStrings, 0f)
             }
             else -> error("Not a body control: $control")
         }
@@ -180,13 +260,18 @@ private class Binding(val marks: Landmarks) {
 
     fun shapes(layer: Layer, points: List<Point>, order: Float): List<BlendBinding<MeshShape>> {
         if (layer.role == "Spirit") return emptyList()
-        val controls = listOf(Control.LEAN, Control.STEP, Control.LEVEL) + if (layer.role in handsAndLyre) listOf(Control.ARM) else emptyList()
+        val controls = buildList {
+            addAll(listOf(Control.BREATH, Control.LEAN, Control.STEP, Control.LEVEL))
+            if (layer.role in handsAndLyre) add(Control.ARM)
+            if (layer.role == "Head" || layer.role == "FrontHair" || layer.role == "BackHair" || layer.role in lids) add(Control.NOD)
+            if (layer.role == "Lyre") add(Control.RESONANCE)
+        }
         val restOpacity = if (layer.role in lids) 0f else 1f
         return controls.map { control ->
             val forms = control.keys.map { value ->
                 if (value == 0f) null else MeshShape(offsets(points) { bodyPose(layer.role, it, control, value) }, order, restOpacity, Rgb.White, Rgb.Black)
             }
-            BlendBinding(control.id, Floats.wrap(control.keys.toFloatArray()), 1, forms)
+            BlendBinding(control.id, Floats.wrap(control.keys.toFloatArray()), control.keys.indexOf(control.neutral), forms)
         }
     }
 }
@@ -209,7 +294,7 @@ private fun opacity(control: Control, levels: List<Pair<Float, Float>>): KeyGrid
 fun makeRig(art: Artwork): RigIR {
     require(art.width == 1000 && art.height == 1120) { "The rig uses a 1000 × 1120 drawing" }
     val atlas = Atlas(art.layers)
-    val binding = Binding(art.landmarks)
+    val binding = Binding(art.landmarks, art.layers.firstOrNull { it.role == "BackHair" }?.let { (it.y + it.h).toFloat() } ?: art.landmarks.feet.y)
     val meshes = art.layers.map { layer ->
         val surface = makeSurface(layer, atlas, art.landmarks)
         val order = (500 + layer.z * 10).toFloat()

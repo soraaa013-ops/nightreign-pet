@@ -16,7 +16,13 @@
 | 绝招 | 2 | 蓄势、召唤灵体、收势 |
 | 胜利 | 2 | 结算时收琴行礼 |
 
-同一场战斗按顺序换招，轻触和绝招结束后回到当前阶段。[桌宠动作预览](character/v0.3.3-motions.webp) · [运行时眼部对照](character/v0.3.3-face.png)
+同一场战斗按顺序换招，轻触和绝招结束后回到当前阶段。[桌宠动作预览](character/v0.3.4-motions.webp) · [运行时眼部对照](character/v0.3.3-face.png)
+
+## 动作编排参考
+
+Live2D 的 Hiyori 示例里，头、上身和手臂各有自己的节奏。对照 `Hiyori_m02` 开头的关键帧，头的横向转动从约 0.63 秒开始，躯干随后启动，手臂到约 0.87 秒才离开原位。小蜗的找弦与拨弦也分开编排，视线先落到琴上，手肘给指尖留出接触琴弦的时间。[官方 Hiyori 动作数据](https://github.com/Live2D/CubismWebSamples/blob/5-r.5/Samples/Resources/Hiyori/motions/Hiyori_m02.motion3.json) · [Live2D 时间轴与曲线教程](https://docs.live2d.com/en/cubism-editor-tutorials/animator/)
+
+动画师 Nathaniel Seymour 用头部与尾羽示范了动作传递和收势。小蜗用同一原则处理两种不同的材质：发梢随头部转向，衣摆随重心变化，放弦后的余振则留在琴弦上。绘制新动作时可以对照手势稿，检查发布效果时可以逐格看实机姿态页。[动画师示范](https://www.animationmentor.com/blog/tutorial-animate-overlap-and-follow-through/) · [拨琴手势稿](../art/revenant/lyre-acting-study.webp) · [实机动作姿态页](character/v0.3.4-poses.png)
 
 ## 查到的线索
 
