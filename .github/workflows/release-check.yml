@@ -94,7 +94,11 @@ jobs:
           test "${#apps[@]}" -eq 1
           binary=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "${apps[0]}/Contents/Info.plist")
           file "${apps[0]}/Contents/MacOS/$binary"
-          node tests/packaged-smoke.mjs "${apps[0]}/Contents/MacOS/$binary"
+          executable="${apps[0]}/Contents/MacOS/$binary"
+          node tests/packaged-smoke.mjs "$executable"
+          if [[ "$NIGHTREIGN_EXPECTED_ARCH" == x64 ]]; then
+            NIGHTREIGN_TEST_SOFTWARE_WEBGL=1 NIGHTREIGN_PACKAGED_REPORT=test-results/packaged-smoke-software.json node tests/packaged-smoke.mjs "$executable"
+          fi
       - name: Hash distributable files
         shell: bash
         run: |

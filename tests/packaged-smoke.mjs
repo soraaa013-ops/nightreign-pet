@@ -29,7 +29,10 @@ async function launchPackaged() {
     args: [
       `--user-data-dir=${profile}`,
       ...(process.env.NIGHTREIGN_TEST_SOFTWARE_WEBGL === '1'
-        ? ['--enable-unsafe-swiftshader']
+        ? [
+            '--enable-unsafe-swiftshader',
+            ...(process.platform === 'darwin' ? ['--use-angle=swiftshader'] : []),
+          ]
         : []),
     ],
     timeout: 60_000,
@@ -133,7 +136,21 @@ try {
 
   await expect(pet.locator('.pet-model')).toBeVisible()
   result.environment.gpuFeatures = await app.evaluate(({ app: main }) => main.getGPUFeatureStatus())
-  await expect(pet.locator('.pet-concept')).toHaveCount(0, { timeout: 45_000 })
+  const portraitOnly =
+    process.platform === 'darwin' &&
+    process.arch === 'x64' &&
+    !result.environment.softwareWebGL &&
+    result.environment.gpuFeatures.webgl === 'disabled_off'
+  if (portraitOnly) {
+    await expect(pet.locator('.concept-label')).toHaveAttribute('title', '无法初始化 WebGL 2。', {
+      timeout: 45_000,
+    })
+    const portrait = pet.getByRole('img', { name: '复仇者小蜗同人立绘预览' })
+    await expect(portrait).toBeVisible()
+    await expect.poll(() => portrait.evaluate((img) => img.naturalWidth)).toBeGreaterThan(100)
+  } else {
+    await expect(pet.locator('.pet-concept')).toHaveCount(0, { timeout: 45_000 })
+  }
   result.character = await pet.evaluate(async () => {
     const manifestUrl = new URL('app://assets/character/revenant/manifest.json')
     const manifest = await (await fetch(manifestUrl)).json()
@@ -173,7 +190,7 @@ try {
     }
   })
   expect(result.character.consistency).toBe(1)
-  expect(result.character.canvas).toBe(true)
+  expect(result.character.canvas).toBe(!portraitOnly)
   expect(result.character.textures.length).toBeGreaterThan(0)
 
   if (process.platform === 'darwin') {
