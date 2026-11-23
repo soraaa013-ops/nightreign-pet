@@ -146,6 +146,26 @@ async function showCharacterFallback(pet: Page) {
   await expect(pet.getByRole('button', { name: '查看模型加载详情' })).toBeVisible()
 }
 
+test('WebGL 启动后画面仍透明时保留立绘，重试能显示模型', async ({ launchApp }) => {
+  const pet = await view(await launchApp(), 'pet')
+  await pet.addInitScript(() => {
+    const gl = WebGL2RenderingContext.prototype
+    const draw = gl.drawElements
+    gl.drawElements = () => {}
+    Reflect.set(window, 'restorePetDraw', () => {
+      gl.drawElements = draw
+    })
+  })
+  await pet.reload()
+  await expect(pet.locator('.concept-label')).toHaveAttribute('title', /角色画面持续透明/, {
+    timeout: 20_000,
+  })
+  await expect(pet.getByRole('img', { name: '复仇者小蜗同人立绘预览' })).toBeVisible()
+  await pet.evaluate(() => Reflect.get(window, 'restorePetDraw')())
+  await pet.getByRole('button', { name: '重新加载小蜗模型' }).click()
+  await expect(pet.locator('.pet-concept')).toHaveCount(0, { timeout: 20_000 })
+})
+
 test('角色读取失败显示具体原因，资源恢复后可重试', async ({ launchApp }) => {
   const app = await launchApp()
   const pet = await view(app, 'pet')

@@ -34,6 +34,7 @@ export class Live2DAdapter {
   private paused = false
   private marchOnLoad = false
   private hasDrawn = false
+  private emptyFrames = 0
   private disposed = false
   private baseAction: BaseAction = 'idle'
   private readonly sizeObserver: ResizeObserver
@@ -68,8 +69,11 @@ export class Live2DAdapter {
     if (this.visible === visible) return
     this.visible = visible
     if (!visible) this.clearPointer(true)
-    if (visible) this.schedule()
-    else this.stopFrames()
+    if (visible) {
+      this.hasDrawn = false
+      this.emptyFrames = 0
+      this.schedule()
+    } else this.stopFrames()
   }
 
   setReducedMotion(reduced: boolean): void {
@@ -162,7 +166,6 @@ export class Live2DAdapter {
         this.marchOnLoad = false
         runtime.play('ultimate')
       }
-      this.options.onStatus?.({ state: 'ready', capabilities: runtime.capabilities })
       this.schedule()
     } catch (error) {
       if (!signal.aborted) this.options.onStatus?.({ state: 'error', message: errorMessage(error) })
@@ -187,6 +190,7 @@ export class Live2DAdapter {
     this.runtime?.close()
     this.runtime = undefined
     this.hasDrawn = false
+    this.emptyFrames = 0
   }
 
   private schedule(): void {
@@ -216,7 +220,15 @@ export class Live2DAdapter {
         this.paused && !this.runtime.marching ? 0 : Math.min(elapsed / 1000, 0.1),
         this.reducedMotion,
       )
-      this.hasDrawn = true
+      if (!this.hasDrawn) {
+        if (!this.runtime.hasVisibleBody()) {
+          if (++this.emptyFrames >= 15) throw new Error('角色画面持续透明，已显示备用立绘。')
+          this.schedule()
+          return
+        }
+        this.hasDrawn = true
+        this.options.onStatus?.({ state: 'ready', capabilities: this.runtime.capabilities })
+      }
       if (!this.paused || this.runtime.marching) this.schedule()
     } catch (error) {
       this.reset()

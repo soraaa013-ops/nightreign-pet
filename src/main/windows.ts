@@ -162,6 +162,7 @@ export class Windows {
       {
         ...bounds,
         frame: false,
+        ...(process.platform === 'darwin' ? { type: 'panel' } : {}),
         transparent: true,
         backgroundColor: '#00000000',
         title: '小蜗',
@@ -176,6 +177,7 @@ export class Windows {
       true,
     )
     this.pet = window
+    if (process.platform === 'darwin') this.setPetWindowLevel(this.prefs().alwaysOnTop)
     this.logicalPetBounds = bounds
     this.ignored = undefined
     this.hit = true
@@ -368,7 +370,7 @@ export class Windows {
       this.ignored = undefined
       this.setHit(this.hit, next)
     }
-    if (old.alwaysOnTop !== next.alwaysOnTop) this.pet?.setAlwaysOnTop(next.alwaysOnTop)
+    if (old.alwaysOnTop !== next.alwaysOnTop) this.setPetWindowLevel(next.alwaysOnTop)
     if (old.scale !== next.scale && this.logicalPetBounds) {
       const b = this.logicalPetBounds,
         area = screen.getDisplayMatching(b).workArea
@@ -376,6 +378,16 @@ export class Windows {
       this.placePet(
         clampBounds({ x: b.x + b.width - width, y: b.y + b.height - height, width, height }, area),
       )
+    }
+  }
+  private setPetWindowLevel(pinned: boolean) {
+    this.pet?.setAlwaysOnTop(pinned)
+    if (process.platform === 'darwin') {
+      // The native nonactivating panel can join fullscreen Spaces without hiding the app's Dock icon.
+      this.pet?.setVisibleOnAllWorkspaces(true, {
+        visibleOnFullScreen: pinned,
+        skipTransformProcessType: true,
+      })
     }
   }
   resetPosition() {

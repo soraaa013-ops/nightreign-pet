@@ -1,4 +1,7 @@
 import { _electron as electron, expect } from '@playwright/test'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
+import { fileURLToPath } from 'node:url'
 import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
@@ -172,6 +175,66 @@ try {
   expect(result.character.consistency).toBe(1)
   expect(result.character.canvas).toBe(true)
   expect(result.character.textures.length).toBeGreaterThan(0)
+
+  if (process.platform === 'darwin') {
+    const windowState = () =>
+      app.evaluate(({ BrowserWindow, screen }) => {
+        const win = BrowserWindow.getAllWindows().find((w) =>
+          w.webContents.getURL().includes('view=pet'),
+        )
+        const bounds = win.getBounds()
+        const area = screen.getDisplayMatching(bounds).workArea
+        return {
+          visible: win.isVisible(),
+          onScreen:
+            bounds.x >= area.x &&
+            bounds.y >= area.y &&
+            bounds.x + bounds.width <= area.x + area.width &&
+            bounds.y + bounds.height <= area.y + area.height,
+          allSpaces: win.isVisibleOnAllWorkspaces(),
+          id: win.getMediaSourceId().split(':')[1],
+        }
+      })
+    const shown = { visible: true, onScreen: true, allSpaces: true }
+    await expect.poll(windowState).toMatchObject(shown)
+    await control.evaluate(() => window.nightreign.command({ type: 'visibility', visible: false }))
+    await expect.poll(windowState).toMatchObject({ visible: false })
+    await control.getByRole('button', { name: '找回小蜗', exact: true }).click()
+    await expect.poll(windowState).toMatchObject(shown)
+
+    // Only the model paints the center of the idle transparent window.
+    const bodyPixels = () =>
+      app.evaluate(async ({ BrowserWindow }) => {
+        const win = BrowserWindow.getAllWindows().find((w) =>
+          w.webContents.getURL().includes('view=pet'),
+        )
+        const { width, height } = win.getContentBounds()
+        const crop = await win.webContents.capturePage({
+          x: Math.floor(width * 0.42),
+          y: Math.floor(height * 0.4),
+          width: Math.floor(width * 0.16),
+          height: Math.floor(height * 0.22),
+        })
+        const pixels = crop.toBitmap()
+        let painted = 0
+        for (let i = 0; i < pixels.length; i += 4)
+          if (pixels[i + 3] > 128 && Math.max(pixels[i], pixels[i + 1], pixels[i + 2]) > 96)
+            painted++
+        return pixels.length ? (4 * painted) / pixels.length : 0
+      })
+    await expect.poll(bodyPixels, { timeout: 12_000 }).toBeGreaterThan(0.15)
+    const state = await windowState()
+    const probe = join(profile, 'probe')
+    const swift = fileURLToPath(new URL('./mac-pet-visibility.swift', import.meta.url))
+    await promisify(execFile)('/usr/bin/swiftc', [swift, '-o', probe])
+    const { stdout } = await promisify(execFile)(probe, [state.id], { timeout: 30_000 })
+    expect(stdout.trim()).toBe('visible-above-fullscreen')
+    result.macVisibility = {
+      ...state,
+      paintedBodyFraction: await bodyPixels(),
+      foregroundProbe: stdout.trim(),
+    }
+  }
 
   await control.evaluate(() =>
     window.nightreign.command({

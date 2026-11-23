@@ -6,7 +6,9 @@
 
 随时双击小蜗的身体，都能让她施放「不死行军」。待机、探索、战斗、暂停和结算后均可重复施放。动作播到一半时再双击，她会先收势，再接上一次。暂停时只有小蜗回应，课程时钟保持原位。控制面板的出击页也支持 Alt+U。[角色动作与实机参照](docs/CHARACTER_ASSETS.md#不死行军)
 
-Windows 用户请从托盘退出旧版，将 ZIP 完整解压到新文件夹，再打开其中的「小蜗渡夜.exe」。[下载 0.3.6-dial.1 · Windows x64](https://github.com/soraaa013-ops/nightreign-pet/releases/download/v0.3.6-dial.1/Nightreign-Pet-0.3.6-dial.1-Windows-x64.zip)
+Mac 用户打开 DMG，将「小蜗渡夜」拖到「应用程序」后启动。可在苹果菜单的「关于本机」查看芯片。开启「窗口置顶」后，小蜗会跟随各个桌面，也能出现在全屏应用上方。要找回她，点顶部菜单栏的月牙 →「重置位置并显示小蜗」，或在出击面板点「找回小蜗」，她会回到主屏幕右下角。[下载 Apple 芯片版](https://github.com/soraaa013-ops/nightreign-pet/releases/download/v0.3.7-mac.1/Nightreign-Pet-0.3.7-mac.1-macOS-arm64.dmg) · [下载 Intel 版](https://github.com/soraaa013-ops/nightreign-pet/releases/download/v0.3.7-mac.1/Nightreign-Pet-0.3.7-mac.1-macOS-x64.dmg)
+
+Windows 用户请从托盘退出旧版，将 ZIP 完整解压到新文件夹，再打开其中的「小蜗渡夜.exe」。[下载 Windows x64 版](https://github.com/soraaa013-ops/nightreign-pet/releases/download/v0.3.7-mac.1/Nightreign-Pet-0.3.7-mac.1-Windows-x64.zip)
 
 首次运行会询问随包 Cubism Core 的使用条款。独立模型包附带编辑工程。[下载桌宠和模型](https://github.com/soraaa013-ops/nightreign-pet/releases/latest) · [使用与验证范围](docs/BUILD_ARTIFACTS.md)
 

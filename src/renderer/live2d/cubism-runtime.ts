@@ -192,9 +192,31 @@ export class CubismRuntime extends CubismUserModel {
     const renderer = this.getRenderer()
     renderer.setMvpMatrix(this.projection)
     renderer.setRenderState(null, [0, 0, width, height])
+    gl.viewport(0, 0, width, height)
     gl.clearColor(0, 0, 0, 0)
     gl.clear(gl.COLOR_BUFFER_BIT)
     renderer.drawModel(this.shaderUrl.href)
+  }
+
+  hasVisibleBody(): boolean {
+    // Sample the middle scanline of the torso just after drawing, before Chromium composites it.
+    const gl = this.gl
+    const width = gl.drawingBufferWidth
+    const pixels = new Uint8Array(width * 4)
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null)
+    gl.readPixels(
+      0,
+      Math.floor(gl.drawingBufferHeight / 2),
+      width,
+      1,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      pixels,
+    )
+    for (let alpha = 3; alpha < pixels.length; alpha += 4) {
+      if (pixels[alpha] >= 32) return true
+    }
+    return false
   }
 
   hitTest(ndcX: number, ndcY: number): boolean {

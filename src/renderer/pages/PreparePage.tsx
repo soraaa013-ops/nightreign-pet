@@ -236,9 +236,9 @@ export function PreparePage({
         </div>
         <button
           className="text-button"
-          onClick={() => send({ type: 'visibility', visible: true }).catch(() => {})}
+          onClick={() => send({ type: 'resetPosition' }).catch(() => {})}
         >
-          显示桌宠
+          找回小蜗
         </button>
       </div>
     </>
