@@ -101,8 +101,10 @@ async function boot() {
       }).catch(report)
     },
   })
+  const appVersion = app.getVersion()
   function snapshot(): AppSnapshot {
     return {
+      appVersion,
       revision: ++revision,
       session: engine.snapshot(),
       preferences: structuredClone(settings.preferences),

@@ -160,7 +160,7 @@ export function App() {
       <main className="main-content" inert={!!confirm}>
         <header className="page-heading">
           <div>
-            <span className="eyebrow">{page === 'prepare' ? 'EXPEDITION' : 'PREFERENCES'}</span>
+            <span className="app-version">当前版本 v{snapshot.appVersion}</span>
             <h1>{page === 'prepare' && active ? '当前渡夜' : titles[page][0]}</h1>
             <p>
               {page === 'prepare' && active

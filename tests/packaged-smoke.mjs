@@ -131,6 +131,7 @@ try {
     )
     .toBe(true)
 
+  await expect(control.getByText(`当前版本 v${result.environment.version}`, { exact: true })).toBeVisible()
   await expect(pet.locator('.pet-model')).toBeVisible()
   result.environment.gpuFeatures = await app.evaluate(({ app: main }) => main.getGPUFeatureStatus())
   const portraitOnly =

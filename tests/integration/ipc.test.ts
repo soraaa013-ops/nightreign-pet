@@ -20,6 +20,7 @@ function createIpc() {
     trusted: (candidate: string, view: View) => candidate === url(view),
   } as unknown as Windows
   const snapshot: AppSnapshot = {
+    appVersion: '1.2.3',
     revision: 0,
     preferences: DEFAULT_PREFERENCES,
     session: null,

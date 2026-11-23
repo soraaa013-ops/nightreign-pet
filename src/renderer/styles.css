@@ -183,6 +183,11 @@ nav button.selected {
   align-items: center;
   margin-bottom: 26px;
 }
+.app-version {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: #bbab8c;
+}
 .eyebrow {
   font-size: 9px;
   letter-spacing: 3px;

@@ -6,3 +6,4 @@
 - 同步更新 `package.json` 和 `package-lock.json`。预览版在新版本号后加预发布标识，并在 GitHub Release 上标为预览版。
 - 将验收过的改动推送到 GitHub 的 `main`，为构建对应的提交创建 `v<版本号>` 标签，并在该版本的 Release 上传 Windows x64 便携 ZIP 和校验值。
 - 交付前核对远端提交、版本标签和下载包，验证公开下载链接。回复用户时给出版本号和该版本的直接下载链接。
+- 面向普通用户的更新使用正式版本号，验收后设为 GitHub Latest。保留 README 所用的固定安装包文件名，发布后验证 `releases/latest` 与三个 `latest/download` 链接。试验性预览版继续使用预发布标识。

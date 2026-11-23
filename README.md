@@ -2,15 +2,21 @@
 
 以《黑夜君临》的渡夜节奏陪伴一节课的 Electron 桌宠。点「出击」，小蜗身边的金色时钟从十二点出发。第一天、第一夜、第二天、第二夜与夜王战依次推进，指针顺时针走完一圈，正好完成一次渡夜。默认一圈 40 分钟，也可以设置自己的课长。
 
+## 下载最新版
+
+[Apple 芯片 Mac](https://github.com/soraaa013-ops/nightreign-pet/releases/latest/download/Nightreign-Pet-macOS-arm64.dmg) · [Intel Mac](https://github.com/soraaa013-ops/nightreign-pet/releases/latest/download/Nightreign-Pet-macOS-x64.dmg) · [Windows x64](https://github.com/soraaa013-ops/nightreign-pet/releases/latest/download/Nightreign-Pet-Windows-x64.zip) · [版本号与更新说明](https://github.com/soraaa013-ops/nightreign-pet/releases/latest)
+
+Mac 用户可在苹果菜单 →「关于本机」查看芯片。更新时先从菜单栏的月牙退出旧版，再把 DMG 里的「小蜗渡夜」拖到「应用程序」替换，打开后核对出击面板标题上方的「当前版本」。Windows 用户从托盘退出旧版，将 ZIP 完整解压到新文件夹，再打开其中的「小蜗渡夜.exe」。
+
+## 使用
+
+小蜗待机时就会出现。如果只看到出击面板，打开左侧「小蜗与桌面」，开启「窗口置顶」并点「重置位置」，她会回到主显示器右下角。也可以直接在菜单栏月牙中选「重置位置并显示小蜗」。
+
 表盘刻度按本局各阶段的实际时长排列。简洁模式用图标和光弧显示进程，想看还剩几分钟，可以把鼠标移到表冠。点表冠可打开面板，「设置 → 桌宠 → 计时环」可切换详细读数或隐藏表盘。暂停时指针停在原处。
 
 随时双击小蜗的身体，都能让她施放「不死行军」。待机、探索、战斗、暂停和结算后均可重复施放。动作播到一半时再双击，她会先收势，再接上一次。暂停时只有小蜗回应，课程时钟保持原位。控制面板的出击页也支持 Alt+U。[角色动作与实机参照](docs/CHARACTER_ASSETS.md#不死行军)
 
-Mac 用户打开 DMG，将「小蜗渡夜」拖到「应用程序」后启动。可在苹果菜单的「关于本机」查看芯片。开启「窗口置顶」后，小蜗会跟随各个桌面，也能出现在全屏应用上方。要找回她，点顶部菜单栏的月牙 →「重置位置并显示小蜗」，或在出击面板点「找回小蜗」，她会回到主屏幕右下角。[下载 Apple 芯片版](https://github.com/soraaa013-ops/nightreign-pet/releases/download/v0.3.7-mac.1/Nightreign-Pet-0.3.7-mac.1-macOS-arm64.dmg) · [下载 Intel 版](https://github.com/soraaa013-ops/nightreign-pet/releases/download/v0.3.7-mac.1/Nightreign-Pet-0.3.7-mac.1-macOS-x64.dmg)
-
-Windows 用户请从托盘退出旧版，将 ZIP 完整解压到新文件夹，再打开其中的「小蜗渡夜.exe」。[下载 Windows x64 版](https://github.com/soraaa013-ops/nightreign-pet/releases/download/v0.3.7-mac.1/Nightreign-Pet-0.3.7-mac.1-Windows-x64.zip)
-
-首次运行会询问随包 Cubism Core 的使用条款。独立模型包附带编辑工程。[下载桌宠和模型](https://github.com/soraaa013-ops/nightreign-pet/releases/latest) · [使用与验证范围](docs/BUILD_ARTIFACTS.md)
+首次运行会询问随包 Cubism Core 的使用条款。[使用与验证范围](docs/BUILD_ARTIFACTS.md) · [独立模型与编辑工程（0.3.0）](https://github.com/soraaa013-ops/nightreign-pet/releases/tag/v0.3.0)
 
 <img src="docs/character/v0.3.6-dial.webp" width="280" alt="渡夜时钟短局实录，指针绕小蜗一圈，日间双击施放不死行军">
 

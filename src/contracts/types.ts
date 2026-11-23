@@ -52,6 +52,7 @@ export interface Session {
   pauseReason?: string
 }
 export interface AppSnapshot {
+  appVersion: string
   revision: number
   session: Session | null
   preferences: Preferences
