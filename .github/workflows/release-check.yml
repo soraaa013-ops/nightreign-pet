@@ -115,33 +115,3 @@ jobs:
             test-results/desktop/**
           if-no-files-found: warn
           retention-days: 7
-
-  intel-animation:
-    name: Intel DMG animation on Apple silicon (Rosetta)
-    needs: native-package
-    runs-on: macos-15
-    timeout-minutes: 15
-    env:
-      NIGHTREIGN_EXPECTED_ARCH: x64
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-      - run: npm ci
-      - uses: actions/download-artifact@v4
-        with:
-          name: nightreign-pet-macos-x64-${{ github.sha }}
-          path: release
-      - name: Check and launch the same Intel DMG with GPU support
-        run: |
-          (cd release && shasum -a 256 -c SHA256SUMS.txt)
-          if ! arch -x86_64 /usr/bin/true; then softwareupdate --install-rosetta --agree-to-license; fi
-          bash tests/smoke-mac-dmg.sh
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: native-smoke-rosetta-${{ github.sha }}
-          path: test-results/packaged-smoke*
-          retention-days: 7

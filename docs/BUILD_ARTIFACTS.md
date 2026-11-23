@@ -1,5 +1,11 @@
 # 小蜗渡夜构建产物
 
+## 0.3.7 Mac 预览版
+
+Apple 芯片选 arm64，Intel 处理器选 x64。两种原生 DMG 都在 macOS 15 上从磁盘映像启动，检查了找回隐藏窗口、实际人物像素，以及另一款应用进入全屏后的窗口顺序。Apple 芯片验证了 Live2D 动画。Intel 测试机未提供 WebGL 2，验证了备用立绘与完整渡夜计时。预览包尚未经过 Apple 公证。[版本下载](https://github.com/soraaa013-ops/nightreign-pet/releases/tag/v0.3.7-mac.1) · [Apple 首次打开说明](https://support.apple.com/zh-cn/102445)
+
+## 0.3.0 构建记录
+
 0.3.0 自带小蜗的模型、灵体贴图和七组共 22 段动作。下载与设备相符的文件，首次启动时阅读随包 Cubism Core 的使用条款。[GitHub Release](https://github.com/soraaa013-ops/nightreign-pet/releases/tag/v0.3.0)
 
 | 设备或用途 | 下载后如何使用 |
