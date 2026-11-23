@@ -29,10 +29,7 @@ async function launchPackaged() {
     args: [
       `--user-data-dir=${profile}`,
       ...(process.env.NIGHTREIGN_TEST_SOFTWARE_WEBGL === '1'
-        ? [
-            '--enable-unsafe-swiftshader',
-            ...(process.platform === 'darwin' ? ['--use-angle=swiftshader'] : []),
-          ]
+        ? ['--enable-unsafe-swiftshader']
         : []),
     ],
     timeout: 60_000,
